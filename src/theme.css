@@ -1,0 +1,193 @@
+/* =====================================================================
+   WordLoom — Polished Theme Layer  (v1)
+   Drop-in cosmetic upgrade: scenic gradient background, ambient glow,
+   frosted puzzle panel, tactile tiles + buttons.
+   Palette: indigo #1B2A4A · linen #F4EDE4 · amber #E4A853
+   ---------------------------------------------------------------------
+   HOW TO USE
+   1. Save this file as:  src/theme.css
+   2. In src/main.ts add at the top:   import './theme.css'
+      (import it AFTER './style.css' so it layers on top)
+   3. Reload. No markup changes required — it targets generic wrappers
+      and degrades gracefully. Tweak the --wl-* tokens below to taste.
+   ===================================================================== */
+
+:root {
+  /* Brand palette */
+  --wl-indigo:      #1B2A4A;
+  --wl-indigo-deep: #101B33;
+  --wl-indigo-soft: #2C3F63;
+  --wl-linen:       #F4EDE4;
+  --wl-amber:       #E4A853;
+  --wl-amber-glow:  #F2C078;
+
+  /* Derived tokens */
+  --wl-ink:         #F4EDE4;
+  --wl-ink-dim:     rgba(244, 237, 228, 0.72);
+  --wl-panel:       rgba(244, 237, 228, 0.06);
+  --wl-panel-brd:   rgba(244, 237, 228, 0.14);
+  --wl-shadow:      0 18px 40px -12px rgba(0, 0, 0, 0.55);
+  --wl-radius:      22px;
+}
+
+/* ------------------------------------------------------------------ */
+/* 1 · Scenic animated background                                      */
+/* ------------------------------------------------------------------ */
+html, body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  color: var(--wl-ink);
+  /* Base vertical gradient: deep indigo → indigo */
+  background:
+    radial-gradient(120% 90% at 50% -10%, var(--wl-indigo-soft) 0%, transparent 55%),
+    linear-gradient(180deg, var(--wl-indigo) 0%, var(--wl-indigo-deep) 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Two slow-drifting amber/indigo "auroras" for living depth.
+   Pointer-events:none so they never block touches on the wheel. */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: -2;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  filter: blur(40px);
+  opacity: 0.55;
+}
+
+body::before {
+  background:
+    radial-gradient(38% 32% at 22% 24%, var(--wl-amber-glow) 0%, transparent 70%),
+    radial-gradient(46% 40% at 82% 30%, var(--wl-indigo-soft) 0%, transparent 72%);
+  animation: wl-drift-a 26s ease-in-out infinite alternate;
+}
+
+body::after {
+  background:
+    radial-gradient(40% 36% at 78% 82%, var(--wl-amber) 0%, transparent 70%),
+    radial-gradient(50% 44% at 18% 76%, var(--wl-indigo-soft) 0%, transparent 74%);
+  opacity: 0.4;
+  animation: wl-drift-b 32s ease-in-out infinite alternate;
+}
+
+@keyframes wl-drift-a {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(4%, 3%, 0) scale(1.12); }
+}
+@keyframes wl-drift-b {
+  0%   { transform: translate3d(0, 0, 0) scale(1.05); }
+  100% { transform: translate3d(-5%, -3%, 0) scale(1); }
+}
+
+/* Fine grain/vignette so flat areas don't look "plasticky" */
+body {
+  position: relative;
+}
+body > * { position: relative; z-index: 0; }
+
+/* Respect reduced-motion users */
+@media (prefers-reduced-motion: reduce) {
+  body::before, body::after { animation: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* 2 · Frosted puzzle panel                                            */
+/*    Targets the common app wrapper ids/classes; adjust if yours      */
+/*    differ (e.g. #app, .game, .board).                               */
+/* ------------------------------------------------------------------ */
+#app,
+.game,
+.board,
+main {
+  backdrop-filter: blur(2px);
+}
+
+.puzzle,
+.grid,
+.crossword,
+.answers {
+  background: var(--wl-panel);
+  border: 1px solid var(--wl-panel-brd);
+  border-radius: var(--wl-radius);
+  box-shadow: var(--wl-shadow);
+  padding: clamp(12px, 3vw, 20px);
+  backdrop-filter: blur(6px);
+}
+
+/* ------------------------------------------------------------------ */
+/* 3 · Letter tiles — soft, tactile                                    */
+/* ------------------------------------------------------------------ */
+.tile,
+.cell,
+.letter {
+  color: var(--wl-indigo-deep);
+  background: linear-gradient(180deg, #ffffff 0%, var(--wl-linen) 100%);
+  border-radius: 12px;
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: transform 140ms cubic-bezier(.34,1.56,.64,1), box-shadow 140ms ease;
+}
+
+/* Pop when a letter locks into place */
+.tile.filled,
+.cell.filled,
+.letter.filled,
+.tile.pop {
+  animation: wl-pop 320ms cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes wl-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* ------------------------------------------------------------------ */
+/* 4 · Buttons — Shuffle / Hint                                        */
+/* ------------------------------------------------------------------ */
+button,
+.btn {
+  color: var(--wl-indigo-deep);
+  background: linear-gradient(180deg, var(--wl-amber-glow) 0%, var(--wl-amber) 100%);
+  border: none;
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow:
+    0 6px 16px -4px rgba(228, 168, 83, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  cursor: pointer;
+}
+button:hover, .btn:hover { filter: brightness(1.04); }
+button:active, .btn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 3px 10px -4px rgba(228, 168, 83, 0.5);
+}
+
+/* Secondary / ghost buttons keep the linen ink look */
+.btn--ghost,
+button.secondary {
+  background: transparent;
+  color: var(--wl-ink);
+  border: 1px solid var(--wl-panel-brd);
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* 5 · Header / level title                                            */
+/* ------------------------------------------------------------------ */
+h1, h2, .level-title {
+  color: var(--wl-ink);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
+  letter-spacing: 0.3px;
+}

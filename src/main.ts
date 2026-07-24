@@ -5,6 +5,7 @@ import { newRound, submitWord, isLevelComplete, computeScore, type RoundState } 
 import { loadDictionary, isRealWord } from "./game/dictionary";
 import { loadProgress, markCleared, loadLevelPack, type Progress } from "./game/state";
 import "./style.css";
+import "./theme.css"; // layers on top
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
