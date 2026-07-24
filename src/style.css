@@ -37,7 +37,7 @@ header{display:flex; align-items:center; gap:10px; padding:2px; flex:0 0 auto}
    The board element itself is sized in JS (board.ts fit()) to fill this box
    while keeping cells square — so it can never overflow. */
 #board-wrap{
-  flex:1 1 auto;
+  flex:0.88 1 auto;
   min-height:0;
   display:flex; align-items:center; justify-content:center;
   padding:2px 0;
@@ -53,7 +53,7 @@ header{display:flex; align-items:center; gap:10px; padding:2px; flex:0 0 auto}
 .glyph.pop{animation:pop .3s ease both}
 @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 
-#current{min-height:28px; text-align:center; font-size:22px; font-weight:800; letter-spacing:.12em; color:var(--amber); flex:0 0 auto}
+#current{min-height:24px; text-align:center; font-size:22px; font-weight:800; letter-spacing:.12em; color:var(--amber); flex:0 0 auto}
 #current.pulse{animation:pulse .3s ease}
 @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
 
@@ -68,7 +68,7 @@ header{display:flex; align-items:center; gap:10px; padding:2px; flex:0 0 auto}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 .wheel{touch-action:none; cursor:pointer; display:block}
 
-.controls{display:flex; gap:10px; padding:6px 0 4px; flex:0 0 auto}
+.controls{display:flex; gap:8px; padding:4px 0 2px; flex:0 0 auto}
 button{flex:1; background:#ffffff14; color:var(--linen); border:0; padding:10px; border-radius:12px; font-weight:700; font-size:14px; cursor:pointer}
 button:active{transform:scale(.97)}
 

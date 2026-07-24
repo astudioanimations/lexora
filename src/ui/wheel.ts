@@ -34,7 +34,7 @@ const TUNING = {
   hapticMs: 8,                 // vibration per new letter (0 = off)
   minWordLength: 3,
   maxCanvasPx: 360,            // hard ceiling
-  viewportHeightFactor: 0.26,  // wheel never taller than 30% of viewport height
+  viewportHeightFactor: 0.30,  // wheel never taller than 30% of viewport height
   widthFactor: 0.78,          // …nor wider than 78% of its parent's width
 };
 // ----------------------------------------------------------------------------
