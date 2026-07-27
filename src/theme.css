@@ -126,7 +126,7 @@ main {
 /* 3 · Letter tiles — soft, tactile                                    */
 /* ------------------------------------------------------------------ */
 .tile,
-.cell,
+.cell.filled,
 .letter {
   color: var(--wl-indigo-deep);
   background: linear-gradient(180deg, #ffffff 0%, var(--wl-linen) 100%);
