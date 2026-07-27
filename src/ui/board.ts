@@ -27,7 +27,7 @@ export class Board {
 
     // Refit whenever the available space changes (rotation, keyboard, chrome).
     this.ro = new ResizeObserver(() => this.fit());
-    this.ro.observe(container);
+    this.ro.observe(this.container);
     window.addEventListener("resize", this.fit);
   }
 
