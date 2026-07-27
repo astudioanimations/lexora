@@ -6,6 +6,7 @@ import { loadDictionary, isRealWord } from "./game/dictionary";
 import { loadProgress, markCleared, loadLevelPack, type Progress } from "./game/state";
 import "./style.css";
 import "./theme.css"; // layers on top
+import { celebrateLevel } from "./ui/celebration";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
@@ -67,12 +68,20 @@ function onSubmit(raw: string) {
 function onComplete() {
   const score = computeScore(round);
   progress = markCleared(progress, level, score, [...round.foundBonus]);
-  toast(`Level ${level.levelNumber} complete · ${score} pts`, 2200);
-  const next = level.levelNumber + 1;
-  setTimeout(() => {
-    if (next <= levels.length) startLevel(next);
-    else toast("You finished every level! 🎉", 4000);
-  }, 1500);
+
+  const finishedNumber = level.levelNumber;
+  const next = finishedNumber + 1;
+
+  // Polished celebration: confetti + card, then advance on "Next Level".
+  celebrateLevel({
+    level: finishedNumber,
+    score,
+    bonus: round.foundBonus.size,
+    onNext: () => {
+      if (next <= levels.length) startLevel(next);
+      else toast("You finished every level! 🎉", 4000);
+    },
+  });
 }
 
 function updateProgressBar() {

@@ -1,21 +1,17 @@
 /* =====================================================================
-   Lexora — Polished Theme Layer  (v2)
-   Cosmetic-only upgrade. No markup or gameplay changes required.
+   Lexora — Polished Theme Layer  (v3)
+   Cosmetic-only. Adds: scenic background image, frosted board card,
+   readable slots, juicy buttons, AND level-complete celebration styles.
 
    HOW TO USE
-     • Save this file as:  src/theme.css   (overwrites your v1)
-     • src/main.ts already imports it AFTER './style.css'  ✓
-     • Reload. Tweak the --lx-* tokens below to taste.
-
-   Design goals (from Wordscapes / Zen Word polish study):
-     • Calm layered background with a warm "horizon" glow.
-     • Frosted glass card behind the puzzle so tiles never blend in.
-     • Readable empty slots (faint), tactile filled tiles.
-     • Elevated wheel panel + juicy tap feedback on buttons.
+     • Save this file as:  src/theme.css   (overwrites v2)
+     • Save the scenic image as:  public/bg.png
+     • src/main.ts already imports this AFTER './style.css'  ✓
+     • For the celebration card, also add src/ui/celebration.ts and call
+       celebrateLevel(...) when a level is finished (see that file).
    ===================================================================== */
 
 :root {
-  /* Brand palette */
   --lx-indigo:      #1B2A4A;
   --lx-indigo-deep: #0E1729;
   --lx-indigo-soft: #2C3F63;
@@ -24,100 +20,83 @@
   --lx-amber-glow:  #F2C078;
   --lx-sage:        #5B8A72;
 
-  /* Derived tokens */
   --lx-ink:         #F4EDE4;
   --lx-ink-dim:     rgba(244,237,228,.72);
-  --lx-card:        rgba(244,237,228,.05);
-  --lx-card-brd:    rgba(244,237,228,.12);
-  --lx-slot:        rgba(244,237,228,.09);
-  --lx-slot-brd:    rgba(244,237,228,.16);
+  --lx-card:        rgba(20,30,54,.34);
+  --lx-card-brd:    rgba(244,237,228,.14);
+  --lx-slot:        rgba(244,237,228,.10);
+  --lx-slot-brd:    rgba(244,237,228,.18);
   --lx-shadow:      0 20px 44px -14px rgba(0,0,0,.6);
   --lx-radius:      24px;
 }
 
 /* ------------------------------------------------------------------ */
-/* 1 · Scenic layered background                                       */
-/*    Deep indigo sky up top, warm amber "horizon" glow near the       */
-/*    bottom where the wheel lives — reads as calm dawn/dusk.          */
+/* 1 · Scenic background image + gradient wash                         */
+/*    The image sits on a fixed layer BEHIND everything. A subtle      */
+/*    indigo wash keeps text/tiles readable over any part of it.       */
 /* ------------------------------------------------------------------ */
 html, body { min-height: 100%; margin: 0; }
 
 body {
   color: var(--lx-ink);
-  background:
-    /* warm horizon glow behind the wheel */
-    radial-gradient(140% 55% at 50% 108%, rgba(228,168,83,.20) 0%, transparent 60%),
-    /* soft top-left sky light */
-    radial-gradient(120% 90% at 22% -10%, var(--lx-indigo-soft) 0%, transparent 55%),
-    /* base vertical sky */
-    linear-gradient(180deg, var(--lx-indigo) 0%, var(--lx-indigo-deep) 100%);
-  background-attachment: fixed;
+  background: var(--lx-indigo-deep); /* fallback if image missing */
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   position: relative;
 }
 
-/* Two slow-drifting auroras for living depth.
-   pointer-events:none so they never block wheel touches. */
-body::before,
+/* Background image layer */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background-image:
+    /* readability wash: darkens top + bottom slightly */
+    linear-gradient(180deg, rgba(14,23,41,.35) 0%, rgba(14,23,41,0) 30%,
+                            rgba(14,23,41,0) 62%, rgba(14,23,41,.30) 100%),
+    url("/bg.png");
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+}
+
+/* One slow amber aurora for gentle life over the image */
 body::after {
   content: "";
   position: fixed;
   inset: -25%;
   z-index: -2;
   pointer-events: none;
-  background-repeat: no-repeat;
-  filter: blur(46px);
+  opacity: .22;
+  filter: blur(48px);
+  background: radial-gradient(38% 32% at 30% 20%, var(--lx-amber-glow) 0%, transparent 70%);
+  animation: lx-drift 30s ease-in-out infinite alternate;
 }
-body::before {
-  opacity: .5;
-  background:
-    radial-gradient(36% 30% at 20% 22%, var(--lx-amber-glow) 0%, transparent 70%),
-    radial-gradient(46% 40% at 82% 28%, var(--lx-indigo-soft) 0%, transparent 72%);
-  animation: lx-drift-a 28s ease-in-out infinite alternate;
-}
-body::after {
-  opacity: .38;
-  background:
-    radial-gradient(40% 34% at 78% 84%, var(--lx-amber) 0%, transparent 70%),
-    radial-gradient(52% 46% at 16% 78%, var(--lx-sage) 0%, transparent 74%);
-  animation: lx-drift-b 34s ease-in-out infinite alternate;
-}
-@keyframes lx-drift-a {
+@keyframes lx-drift {
   0%   { transform: translate3d(0,0,0) scale(1); }
-  100% { transform: translate3d(4%,3%,0) scale(1.12); }
+  100% { transform: translate3d(5%,3%,0) scale(1.1); }
 }
-@keyframes lx-drift-b {
-  0%   { transform: translate3d(0,0,0) scale(1.05); }
-  100% { transform: translate3d(-5%,-3%,0) scale(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  body::before, body::after { animation: none; }
-}
+@media (prefers-reduced-motion: reduce) { body::after { animation: none; } }
 
 #app > * { position: relative; z-index: 0; }
 
 /* ------------------------------------------------------------------ */
 /* 2 · Header, chips & progress bar                                    */
 /* ------------------------------------------------------------------ */
-.brand { text-shadow: 0 1px 12px rgba(0,0,0,.35); letter-spacing:.3px; }
+.brand { text-shadow: 0 1px 12px rgba(0,0,0,.45); letter-spacing:.3px; }
 
-.chip,
-#level-num {
+.chip, #level-num {
   background: var(--lx-card);
   border: 1px solid var(--lx-card-brd);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
+.tier { box-shadow: 0 4px 14px -4px rgba(0,0,0,.45); }
 
-.tier {
-  box-shadow: 0 4px 14px -4px rgba(0,0,0,.4);
-}
-
-/* Progress bar: subtle track + glowing amber fill */
 .bar {
-  background: rgba(255,255,255,.12) !important;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,.25);
+  background: rgba(255,255,255,.14) !important;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.3);
 }
 #bar-fill {
   background: linear-gradient(90deg, var(--lx-amber) 0%, var(--lx-amber-glow) 100%) !important;
@@ -126,24 +105,20 @@ body::after {
 
 /* ------------------------------------------------------------------ */
 /* 3 · Frosted glass card behind the puzzle                            */
-/*    Gives the board a "surface" so tiles never blend into the bg.    */
 /* ------------------------------------------------------------------ */
 #board-wrap {
   background: var(--lx-card);
   border: 1px solid var(--lx-card-brd);
   border-radius: var(--lx-radius);
   box-shadow: var(--lx-shadow);
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
-  /* breathing room inside the card without breaking board.ts sizing */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: 12px 10px;
 }
 
 /* ------------------------------------------------------------------ */
-/* 4 · Cells — readable empty slots, tactile filled tiles              */
+/* 4 · Cells                                                           */
 /* ------------------------------------------------------------------ */
-/* Empty slots: faint but visible so the crossword shape reads
-   (fixes the "where's the last box" complaint). */
 .cell.slot {
   background: var(--lx-slot);
   box-shadow: inset 0 0 0 1.5px var(--lx-slot-brd);
@@ -151,21 +126,16 @@ body::after {
 }
 .cell.empty { background: transparent; box-shadow: none; }
 
-/* Filled letter tiles: soft, warm, slightly raised. */
 .cell.filled {
   color: var(--lx-indigo-deep);
   background: linear-gradient(180deg, #ffffff 0%, var(--lx-linen) 100%);
   border-radius: 10px;
-  box-shadow:
-    0 3px 0 rgba(0,0,0,.14),
-    inset 0 1px 0 rgba(255,255,255,.9);
+  box-shadow: 0 3px 0 rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.9);
 }
 .cell.hint {
   background: linear-gradient(180deg, #fff6e6 0%, #f6e4c4 100%);
-  box-shadow:
-    0 3px 0 rgba(0,0,0,.12),
-    inset 0 1px 0 rgba(255,255,255,.9),
-    0 0 12px rgba(242,192,120,.5);
+  box-shadow: 0 3px 0 rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.9),
+              0 0 12px rgba(242,192,120,.5);
 }
 .cell.filled .glyph { color: var(--lx-indigo-deep); }
 
@@ -174,42 +144,31 @@ body::after {
 /* ------------------------------------------------------------------ */
 #current {
   color: var(--lx-amber-glow);
-  text-shadow: 0 2px 10px rgba(228,168,83,.35);
+  text-shadow: 0 2px 10px rgba(228,168,83,.4);
 }
 
 /* ------------------------------------------------------------------ */
-/* 6 · Wheel panel — elevated card with soft shadow + rim light        */
-/*    (The linen disc itself is drawn on <canvas>; we style its frame) */
+/* 6 · Wheel frame                                                     */
 /* ------------------------------------------------------------------ */
 .wheel {
   border-radius: 28px;
-  box-shadow:
-    0 18px 40px -12px rgba(0,0,0,.55),
-    inset 0 1px 0 rgba(255,255,255,.6);
+  box-shadow: 0 18px 40px -12px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.6);
 }
 
 /* ------------------------------------------------------------------ */
-/* 7 · Buttons — juicy tap feedback (Shuffle / Hint)                   */
+/* 7 · Buttons — juicy tap feedback                                    */
 /* ------------------------------------------------------------------ */
-.controls button,
-button, .btn {
+.controls button, button, .btn {
   color: var(--lx-indigo-deep);
   background: linear-gradient(180deg, var(--lx-amber-glow) 0%, var(--lx-amber) 100%);
-  border: none;
-  border-radius: 999px;
-  font-weight: 800;
-  letter-spacing: .2px;
-  box-shadow:
-    0 8px 18px -6px rgba(228,168,83,.6),
-    inset 0 1px 0 rgba(255,255,255,.65);
-  transition: transform 120ms cubic-bezier(.34,1.56,.64,1),
-              box-shadow 120ms ease, filter 120ms ease;
+  border: none; border-radius: 999px; font-weight: 800; letter-spacing:.2px;
+  box-shadow: 0 8px 18px -6px rgba(228,168,83,.6), inset 0 1px 0 rgba(255,255,255,.65);
+  transition: transform 120ms cubic-bezier(.34,1.56,.64,1), box-shadow 120ms ease, filter 120ms ease;
 }
 button:hover, .btn:hover { filter: brightness(1.05); }
 button:active, .btn:active {
   transform: translateY(2px) scale(.97);
-  box-shadow: 0 3px 10px -6px rgba(228,168,83,.55),
-              inset 0 1px 0 rgba(255,255,255,.5);
+  box-shadow: 0 3px 10px -6px rgba(228,168,83,.55), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
 /* ------------------------------------------------------------------ */
@@ -218,7 +177,60 @@ button:active, .btn:active {
 #toast {
   background: rgba(14,23,41,.92);
   border: 1px solid var(--lx-card-brd);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   box-shadow: 0 10px 28px rgba(0,0,0,.45);
 }
+
+/* ================================================================== */
+/* 9 · Level-complete celebration (used by src/ui/celebration.ts)     */
+/* ================================================================== */
+.lx-celebrate {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(14,23,41,.55);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  opacity: 0; transition: opacity .24s ease;
+}
+.lx-celebrate.show { opacity: 1; }
+
+.lx-confetti {
+  position: fixed; inset: 0; z-index: 51; pointer-events: none;
+}
+
+.lx-cel-card {
+  position: relative; z-index: 52;
+  width: min(340px, 82vw);
+  text-align: center;
+  padding: 28px 24px 22px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgba(244,237,228,.98) 0%, rgba(244,237,228,.94) 100%);
+  color: var(--lx-indigo-deep);
+  box-shadow: 0 28px 60px -18px rgba(0,0,0,.65);
+  transform: translateY(14px) scale(.96);
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1);
+}
+.lx-celebrate.show .lx-cel-card { transform: translateY(0) scale(1); }
+
+.lx-cel-badge {
+  width: 58px; height: 58px; margin: 0 auto 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: #fff;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--lx-amber-glow), var(--lx-amber));
+  box-shadow: 0 8px 20px -6px rgba(228,168,83,.7);
+}
+.lx-cel-title { margin: 4px 0 2px; font-size: 24px; font-weight: 900; letter-spacing:.2px; }
+.lx-cel-sub   { margin: 0 0 12px; font-size: 14px; opacity: .7; }
+.lx-cel-stats { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+.lx-cel-chip  {
+  background: rgba(27,42,74,.08); color: var(--lx-indigo);
+  padding: 5px 12px; border-radius: 999px; font-weight: 800; font-size: 13px;
+}
+.lx-cel-next  {
+  width: 100%; padding: 13px; border: none; border-radius: 14px;
+  color: var(--lx-indigo-deep); font-weight: 900; font-size: 15px; cursor: pointer;
+  background: linear-gradient(180deg, var(--lx-amber-glow) 0%, var(--lx-amber) 100%);
+  box-shadow: 0 8px 18px -6px rgba(228,168,83,.6), inset 0 1px 0 rgba(255,255,255,.65);
+  transition: transform 120ms cubic-bezier(.34,1.56,.64,1);
+}
+.lx-cel-next:active { transform: translateY(2px) scale(.98); }

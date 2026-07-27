@@ -36,6 +36,13 @@ const TUNING = {
   maxCanvasPx: 420,            // hard ceiling
   viewportHeightFactor: 0.40,  // wheel never taller than 30% of viewport height
   widthFactor: 0.86,          // …nor wider than 78% of its parent's width
+    // --- v2 look ---
+  faceColor:      "#F4EDE4",   // wheel disc face (linen)
+  nodeColor:      "#2C3F63",   // idle letter dot (indigo-soft)
+  nodeSelected:   "#E4A853",   // selected dot (amber)
+  nodeText:       "#F4EDE4",   // letter colour
+  trailColor:     "#E4A853",   // swipe connector (amber)
+  glowColor:      "rgba(228,168,83,0.55)",
 };
 // ----------------------------------------------------------------------------
 
@@ -168,41 +175,64 @@ export class Wheel {
   }
 
   private draw() {
-    const ctx = this.ctx;
-    const size = this.cssSize();
-    ctx.clearRect(0, 0, size, size);
+  const ctx = this.ctx;
+  const size = this.cssSize();
+  ctx.clearRect(0, 0, size, size);
 
-    ctx.fillStyle = PALETTE.linen;
-    roundRect(ctx, size * 0.06, size * 0.06, size * 0.88, size * 0.88, size * 0.12);
-    ctx.fill();
+  // 1 · Wheel disc face
+  const cx = size / 2, cy = size / 2;
+  const disc = size * (TUNING.wheelRadiusFactor + TUNING.nodeRadiusFactor + 0.03);
+  ctx.beginPath();
+  ctx.arc(cx, cy, disc, 0, Math.PI * 2);
+  ctx.fillStyle = TUNING.faceColor;
+  ctx.fill();
 
-    if (this.path.length) {
-      ctx.strokeStyle = PALETTE.amber;
-      ctx.lineWidth = size * TUNING.trailWidthFactor;
-      ctx.lineJoin = "round"; ctx.lineCap = "round";
-      ctx.beginPath();
-      this.path.forEach((idx, i) => {
-        const n = this.nodes[idx];
-        if (i === 0) ctx.moveTo(n.x, n.y); else ctx.lineTo(n.x, n.y);
-      });
-      if (this.dragging) ctx.lineTo(this.pointer.x, this.pointer.y);
-      ctx.stroke();
-    }
-
-    const r = size * TUNING.nodeRadiusFactor;
-    this.nodes.forEach((n) => {
-      const active = this.path.includes(n.idx);
-      const rr = active ? r * TUNING.selectedScale : r;
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, rr, 0, Math.PI * 2);
-      ctx.fillStyle = active ? PALETTE.amber : PALETTE.sage;
-      ctx.fill();
-      ctx.fillStyle = active ? PALETTE.ink : PALETTE.linen;
-      ctx.font = `700 ${size * 0.075}px system-ui, sans-serif`;
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(n.ch, n.x, n.y + size * 0.004);
+  // 2 · Glowing swipe trail through selected nodes (+ toward pointer)
+  if (this.path.length > 0) {
+    ctx.save();
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.lineWidth = size * TUNING.trailWidthFactor;
+    ctx.strokeStyle = TUNING.trailColor;
+    ctx.shadowColor = TUNING.glowColor;
+    ctx.shadowBlur = size * 0.05;
+    ctx.beginPath();
+    this.path.forEach((idx, i) => {
+      const n = this.nodes[idx];
+      if (i === 0) ctx.moveTo(n.x, n.y);
+      else ctx.lineTo(n.x, n.y);
     });
+    // live segment to the finger while dragging
+    if (this.dragging) ctx.lineTo(this.pointer.x, this.pointer.y);
+    ctx.stroke();
+    ctx.restore();
   }
+
+  // 3 · Letter nodes
+  const rNode = size * TUNING.nodeRadiusFactor;
+  for (const n of this.nodes) {
+    const selected = this.path.includes(n.idx);
+    const r = selected ? rNode * TUNING.selectedScale : rNode;
+
+    ctx.save();
+    if (selected) {
+      ctx.shadowColor = TUNING.glowColor;
+      ctx.shadowBlur = size * 0.06;
+    }
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = selected ? TUNING.nodeSelected : TUNING.nodeColor;
+    ctx.fill();
+    ctx.restore();
+
+    // letter
+    ctx.fillStyle = TUNING.nodeText;
+    ctx.font = `700 ${Math.floor(r * 1.05)}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(n.ch, n.x, n.y);
+  }
+}
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
