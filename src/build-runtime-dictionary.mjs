@@ -2,7 +2,7 @@ import fs from "node:fs";
 import wordListPath from "word-list";
 
 // ============================================================
-// WordLoom — real curated RUNTIME dictionary builder
+// Lexora — real curated RUNTIME dictionary builder
 // ------------------------------------------------------------
 // Produces public/dictionary.txt: the broad, curated word set the client uses
 // to validate bonus words a player swipes that aren't in a level's pre-computed
@@ -21,7 +21,7 @@ import wordListPath from "word-list";
 //   * UNION with every grid+bonus word already in the pack, so nothing that can
 //     legitimately appear on a board is ever rejected as a bonus find.
 //
-// Run from the wordloom project root:
+// Run from the Lexora project root:
 //   node src/build-runtime-dictionary.mjs
 //   (optional) node src/build-runtime-dictionary.mjs public/level-pack.json public/dictionary.txt
 // ============================================================

@@ -16,7 +16,7 @@ export default defineConfig({
           {
             urlPattern: ({ url }) => url.pathname.endsWith(".json") || url.pathname.endsWith(".txt"),
             handler: "CacheFirst",
-            options: { cacheName: "wordloom-content", expiration: { maxEntries: 8 } },
+            options: { cacheName: "Lexora-content", expiration: { maxEntries: 8 } },
           },
         ],
       },

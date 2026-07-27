@@ -1,6 +1,6 @@
 {
-  "name": "WordLoom",
-  "short_name": "WordLoom",
+  "name": "Lexora",
+  "short_name": "Lexora",
   "description": "Connect letters, weave crossword grids, discover bonus words.",
   "start_url": "/",
   "display": "standalone",

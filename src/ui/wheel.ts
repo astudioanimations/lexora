@@ -1,5 +1,5 @@
 /**
- * WordLoom swipe letter-wheel (Canvas) — touch-tuned v2 + height-aware sizing.
+ * Lexora swipe letter-wheel (Canvas) — touch-tuned v2 + height-aware sizing.
  *
  * v2 feel improvements:
  *  - HIT radius separate from and larger than the VISUAL node radius.

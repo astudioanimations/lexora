@@ -6,7 +6,7 @@ import type { Level } from "../types";
  * current level number + best scores stored in localStorage.
  */
 
-const KEY = "wordloom.progress.v1";
+const KEY = "Lexora.progress.v1";
 
 export interface Progress {
   current: number;                 // 1-indexed level the player is on

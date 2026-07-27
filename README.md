@@ -1,4 +1,4 @@
-# WordLoom 🧵
+# Lexora 🧵
 
 A procedural word-connect PWA — connect letters on the wheel, weave crossword-style grids, discover bonus words. Sequential levels, play at your own pace, fully offline.
 
@@ -64,7 +64,7 @@ src/
     board.ts            crossword renderer (DOM/CSS grid)
     wheel.ts            swipe letter-wheel (Canvas, pointer events)
   main.ts               app wiring
-  style.css             WordLoom palette
+  style.css             Lexora palette
 public/
   level-pack.json       validated level data (fetched at runtime)
   dictionary.txt        runtime bonus-word set

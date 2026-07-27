@@ -1,4 +1,4 @@
-// ---- WordLoom data contract ----
+// ---- Lexora data contract ----
 // Matches the validated level-pack.json produced by the build-time generator.
 
 export type Orientation = "across" | "down" | "none";

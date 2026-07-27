@@ -1,4 +1,4 @@
-# WordLoom — Project Status
+# Lexora — Project Status
 
 _Last updated: 21 Jul 2026_
 
@@ -7,10 +7,10 @@ _Last updated: 21 Jul 2026_
 | Milestone | Status |
 |---|---|
 | PRD → validated level pack | ✅ |
-| WordLoom brand + icons | ✅ |
+| Lexora brand + icons | ✅ |
 | Full PWA client built + tested | ✅ |
-| Pushed to GitHub | ✅ `github.com/tessera11/wordloom` |
-| **Live on Cloudflare Pages** | ✅ `wordloom-9up.pages.dev` |
+| Pushed to GitHub | ✅ `github.com/tessera11/Lexora` |
+| **Live on Cloudflare Pages** | ✅ `Lexora-9up.pages.dev` |
 | Auto-deploy on push | ✅ (Connect to Git) |
 | **Scaled to 300 levels** | ✅ verified live (`Levels live: 300`) |
 | **Proper-noun leak closed** | ✅ verified live (`CLEAN - 0 leaks`) |
@@ -18,7 +18,7 @@ _Last updated: 21 Jul 2026_
 From here, any change is just `git add . && git commit -m "..." && git push` — live in ~2 min.
 
 ## Live URL
-🔗 https://wordloom-9up.pages.dev/
+🔗 https://Lexora-9up.pages.dev/
 
 ## 300-level generation — verified results (21 Jul 2026)
 Clean frequency-ordered dictionary: 23,247 words.
@@ -38,7 +38,7 @@ Clean frequency-ordered dictionary: 23,247 words.
   focused name set added; live pack verified 0 leaks across 300 levels.
 - Runtime bonus-word dictionary: 2,746 words.
 
-## Regenerate levels (from the wordloom project root)
+## Regenerate levels (from the Lexora project root)
 The project doubles as the build-time content factory. Generator inputs
 (`data/`) and outputs (`output/`) are git-ignored — regenerate, don't version.
 
@@ -54,7 +54,7 @@ Generator deps (dev-only): `crossword-layout-generator`, `word-list`.
 Data inputs: `data/en_50k.txt` (hermitdave FrequencyWords), `data/profanity.txt` (LDNOOBW).
 
 ## Deploy workflow (recap)
-- **Production:** pushes to `main` → auto-deploy to `wordloom-9up.pages.dev`.
+- **Production:** pushes to `main` → auto-deploy to `Lexora-9up.pages.dev`.
 - **Previews:** pushes to any other branch → unique preview URL (safe playtesting).
 - **Rollback:** Cloudflare dashboard → project → Deployments → pick a good build → Rollback.
 

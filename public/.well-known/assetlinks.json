@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "dev.wordloom.twa",
+      "package_name": "dev.Lexora.twa",
       "sha256_cert_fingerprints": [
         "4F:F3:F9:C2:70:10:FE:38:48:C3:70:A2:49:FA:CA:FC:30:72:ED:FB:6F:7F:5A:D9:AE:FC:72:5A:00:DD:56:1D"
       ]

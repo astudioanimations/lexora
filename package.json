@@ -1,9 +1,9 @@
 {
-  "name": "wordloom",
+  "name": "Lexora",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "WordLoom — a procedural word-connect PWA. Connect letters, weave crossword grids, discover bonus words.",
+  "description": "Lexora — a procedural word-connect PWA. Connect letters, weave crossword grids, discover bonus words.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

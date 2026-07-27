@@ -1,4 +1,4 @@
-# WordLoom names blocklist — CONSERVATIVE proper-noun-only starter.
+# Lexora names blocklist — CONSERVATIVE proper-noun-only starter.
 #
 # LESSON LEARNED (see README): a naive names list over-filters, because many
 # common words are also names (rose, ray, pat, sue, lee, mac, ken, peter, cole,

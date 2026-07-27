@@ -1,6 +1,6 @@
-# WordLoom — Deploy Runbook (Cloudflare Pages)
+# Lexora — Deploy Runbook (Cloudflare Pages)
 
-Get WordLoom live on a public HTTPS URL for **$0**. Mirrors the Tessera deploy
+Get Lexora live on a public HTTPS URL for **$0**. Mirrors the Tessera deploy
 path. Total time: ~10–15 minutes.
 
 > **Why HTTPS matters:** the PWA (install prompt, offline service worker, and
@@ -10,7 +10,7 @@ path. Total time: ~10–15 minutes.
 ---
 
 ## Prerequisites
-- The `wordloom/` project on your machine, running locally (`npm run dev` works).
+- The `Lexora/` project on your machine, running locally (`npm run dev` works).
 - A **GitHub** account.
 - A **Cloudflare** account (free tier is fine — you already have one from Tessera).
 - **Git** installed (`git --version` to check; https://git-scm.com if not).
@@ -19,7 +19,7 @@ path. Total time: ~10–15 minutes.
 
 ## Step 1 — Put the project on GitHub
 
-From inside the `wordloom/` folder:
+From inside the `Lexora/` folder:
 
 ```bash
 # make sure build artefacts and deps aren't committed
@@ -27,17 +27,17 @@ printf "node_modules/\ndist/\n.DS_Store\n" > .gitignore
 
 git init
 git add .
-git commit -m "WordLoom v1 — initial commit"
+git commit -m "Lexora v1 — initial commit"
 ```
 
 Create a **new, empty** repo on GitHub (github.com → New repository):
-- Name: `wordloom`
+- Name: `Lexora`
 - **Do NOT** add a README, .gitignore, or licence (keep it empty so the push is clean).
 
 Then link and push (replace `YOUR-USERNAME`):
 
 ```bash
-git remote add origin https://github.com/YOUR-USERNAME/wordloom.git
+git remote add origin https://github.com/YOUR-USERNAME/Lexora.git
 git branch -M main
 git push -u origin main
 ```
@@ -50,7 +50,7 @@ git push -u origin main
 2. Click **⚠️ “Connect to Git”** — **NOT** “Import an existing Git repository /
    Direct Upload”. This is the exact gotcha you hit with Tessera: the
    *Connect to Git* flow is what wires up auto-deploy on every push.
-3. Authorise GitHub, then select the **`wordloom`** repo.
+3. Authorise GitHub, then select the **`Lexora`** repo.
 
 ---
 
@@ -78,7 +78,7 @@ publishes `dist/`.
 
 ## Step 4 — Verify the live site
 
-You’ll get a URL like `https://wordloom.pages.dev` (and a per-deploy preview URL).
+You’ll get a URL like `https://Lexora.pages.dev` (and a per-deploy preview URL).
 
 Check:
 - [ ] Board + wheel render, level 1 (“father”) loads.
@@ -101,14 +101,14 @@ git commit -m "tweak wheel hit-radius"
 git push
 ```
 
-- Pushes to **`main`** → production (`wordloom.pages.dev`).
+- Pushes to **`main`** → production (`Lexora.pages.dev`).
 - Pushes to any **other branch** → a unique preview URL (great for playtesting a
   change before it goes live).
 
 ---
 
 ## Optional — custom domain
-Pages project → **Custom domains** → add e.g. `wordloom.app` or a subdomain.
+Pages project → **Custom domains** → add e.g. `Lexora.app` or a subdomain.
 If the domain is already on Cloudflare, DNS is auto-configured; otherwise follow
 the CNAME instructions shown.
 

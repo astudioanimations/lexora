@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# WordLoom deploy helper.
-# Run from INSIDE the wordloom/ project folder:  bash deploy.sh
+# Lexora deploy helper.
+# Run from INSIDE the Lexora/ project folder:  bash deploy.sh
 #
 # Covers Step 1 (GitHub) and Step 5 (push-to-deploy).
 # Steps 2–4 (Connect to Git + build settings) are dashboard clicks — see DEPLOY.md.
@@ -11,13 +11,13 @@ set -e  # stop on first error
 
 # ---- EDIT THIS ----
 GH_USERNAME="tessera11"     # <-- your GitHub username
-REPO="wordloom"
+REPO="Lexora"
 # -------------------
 
 echo "==> Sanity checks"
 command -v git  >/dev/null || { echo "Git not installed: https://git-scm.com"; exit 1; }
 command -v node >/dev/null || { echo "Node not installed: https://nodejs.org"; exit 1; }
-[ -f package.json ] || { echo "Run this from inside the wordloom/ folder (no package.json here)."; exit 1; }
+[ -f package.json ] || { echo "Run this from inside the Lexora/ folder (no package.json here)."; exit 1; }
 echo "    node $(node --version), git $(git --version | awk '{print $3}')"
 
 echo "==> Verify the project builds before deploying"
@@ -32,7 +32,7 @@ if [ ! -d .git ]; then
   git branch -M main
 fi
 git add .
-git commit -m "WordLoom v1 — initial commit" || echo "    (nothing new to commit)"
+git commit -m "Lexora v1 — initial commit" || echo "    (nothing new to commit)"
 
 echo "==> Link GitHub remote + push"
 if git remote get-url origin >/dev/null 2>&1; then
@@ -48,7 +48,7 @@ cat <<'NEXT'
 
 Now do Steps 2–4 ONCE in the Cloudflare dashboard:
   1. Workers & Pages -> Create -> Pages -> "Connect to Git"  (NOT Direct Upload)
-  2. Pick the 'wordloom' repo
+  2. Pick the 'Lexora' repo
   3. Build command:  npm run build
      Output dir:     dist
      Env var:        NODE_VERSION = 20

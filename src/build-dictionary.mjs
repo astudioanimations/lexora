@@ -5,7 +5,7 @@ import fs from "node:fs";
 // one word per line. Run AFTER build-level-pack.mjs.
 //
 //   node build-dictionary.mjs                       # defaults below
-//   node build-dictionary.mjs output/level-pack.json ../wordloom/public/dictionary.txt
+//   node build-dictionary.mjs output/level-pack.json ../Lexora/public/dictionary.txt
 
 const inPath = process.argv[2] || "output/level-pack.json";
 const outPath = process.argv[3] || "output/dictionary.txt";
