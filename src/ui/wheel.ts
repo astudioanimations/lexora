@@ -7,22 +7,14 @@
  *  - Scroll/gesture lock while dragging.
  *  - Pointer capture so a drag leaving the canvas still tracks.
  *  - Selected-node pop + haptic tick.
+ *  - v2 look: linen disc, indigo idle dots, amber selected dots, glowing trail.
  *
- * SIZING FIX (this build): the canvas is capped by the SMALLER of the parent
- * width AND a share of the viewport height (viewportHeightFactor). This stops
- * the wheel eating the space the Shuffle/Hint buttons need — the previous
- * version sized by width only, which pushed the buttons off-screen on tall grids.
+ * SIZING: the canvas is capped by the SMALLER of the parent width AND a share
+ * of the viewport height (viewportHeightFactor), so it never pushes the
+ * Shuffle/Hint buttons off-screen.
  *
- * All feel + sizing constants live in TUNING (see PLAYTEST.md).
+ * All feel + sizing + colour constants live in TUNING (see PLAYTEST.md).
  */
-
-const PALETTE = {
-  indigo: "#1B2A4A",
-  linen: "#F4EDE4",
-  amber: "#E4A853",
-  sage: "#5B8A72",
-  ink: "#0E1729",
-};
 
 // ---- TUNING: adjust during playtesting -------------------------------------
 const TUNING = {
@@ -34,13 +26,14 @@ const TUNING = {
   hapticMs: 8,                 // vibration per new letter (0 = off)
   minWordLength: 3,
   maxCanvasPx: 420,            // hard ceiling
-  viewportHeightFactor: 0.40,  // wheel never taller than 30% of viewport height
-  widthFactor: 0.86,          // …nor wider than 78% of its parent's width
-    // --- v2 look ---
+  viewportHeightFactor: 0.40,  // wheel never taller than 40% of viewport height
+  widthFactor: 0.86,           // …nor wider than 86% of its parent's width
+  // --- v2 look ---
   faceColor:      "#F4EDE4",   // wheel disc face (linen)
   nodeColor:      "#2C3F63",   // idle letter dot (indigo-soft)
   nodeSelected:   "#E4A853",   // selected dot (amber)
-  nodeText:       "#F4EDE4",   // letter colour
+  nodeText:       "#F4EDE4",   // idle letter colour
+  nodeTextSel:    "#0E1729",   // selected letter colour (ink, for contrast)
   trailColor:     "#E4A853",   // swipe connector (amber)
   glowColor:      "rgba(228,168,83,0.55)",
 };
@@ -175,72 +168,62 @@ export class Wheel {
   }
 
   private draw() {
-  const ctx = this.ctx;
-  const size = this.cssSize();
-  ctx.clearRect(0, 0, size, size);
+    const ctx = this.ctx;
+    const size = this.cssSize();
+    ctx.clearRect(0, 0, size, size);
 
-  // 1 · Wheel disc face
-  const cx = size / 2, cy = size / 2;
-  const disc = size * (TUNING.wheelRadiusFactor + TUNING.nodeRadiusFactor + 0.03);
-  ctx.beginPath();
-  ctx.arc(cx, cy, disc, 0, Math.PI * 2);
-  ctx.fillStyle = TUNING.faceColor;
-  ctx.fill();
-
-  // 2 · Glowing swipe trail through selected nodes (+ toward pointer)
-  if (this.path.length > 0) {
-    ctx.save();
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.lineWidth = size * TUNING.trailWidthFactor;
-    ctx.strokeStyle = TUNING.trailColor;
-    ctx.shadowColor = TUNING.glowColor;
-    ctx.shadowBlur = size * 0.05;
+    // 1 · Wheel disc face
+    const cx = size / 2, cy = size / 2;
+    const disc = size * (TUNING.wheelRadiusFactor + TUNING.nodeRadiusFactor + 0.03);
     ctx.beginPath();
-    this.path.forEach((idx, i) => {
-      const n = this.nodes[idx];
-      if (i === 0) ctx.moveTo(n.x, n.y);
-      else ctx.lineTo(n.x, n.y);
-    });
-    // live segment to the finger while dragging
-    if (this.dragging) ctx.lineTo(this.pointer.x, this.pointer.y);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // 3 · Letter nodes
-  const rNode = size * TUNING.nodeRadiusFactor;
-  for (const n of this.nodes) {
-    const selected = this.path.includes(n.idx);
-    const r = selected ? rNode * TUNING.selectedScale : rNode;
-
-    ctx.save();
-    if (selected) {
-      ctx.shadowColor = TUNING.glowColor;
-      ctx.shadowBlur = size * 0.06;
-    }
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = selected ? TUNING.nodeSelected : TUNING.nodeColor;
+    ctx.arc(cx, cy, disc, 0, Math.PI * 2);
+    ctx.fillStyle = TUNING.faceColor;
     ctx.fill();
-    ctx.restore();
 
-    // letter
-    ctx.fillStyle = TUNING.nodeText;
-    ctx.font = `700 ${Math.floor(r * 1.05)}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(n.ch, n.x, n.y);
+    // 2 · Glowing swipe trail through selected nodes (+ toward pointer)
+    if (this.path.length > 0) {
+      ctx.save();
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.lineWidth = size * TUNING.trailWidthFactor;
+      ctx.strokeStyle = TUNING.trailColor;
+      ctx.shadowColor = TUNING.glowColor;
+      ctx.shadowBlur = size * 0.05;
+      ctx.beginPath();
+      this.path.forEach((idx, i) => {
+        const n = this.nodes[idx];
+        if (i === 0) ctx.moveTo(n.x, n.y);
+        else ctx.lineTo(n.x, n.y);
+      });
+      // live segment to the finger while dragging
+      if (this.dragging) ctx.lineTo(this.pointer.x, this.pointer.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 3 · Letter nodes
+    const rNode = size * TUNING.nodeRadiusFactor;
+    for (const n of this.nodes) {
+      const selected = this.path.includes(n.idx);
+      const r = selected ? rNode * TUNING.selectedScale : rNode;
+
+      ctx.save();
+      if (selected) {
+        ctx.shadowColor = TUNING.glowColor;
+        ctx.shadowBlur = size * 0.06;
+      }
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = selected ? TUNING.nodeSelected : TUNING.nodeColor;
+      ctx.fill();
+      ctx.restore();
+
+      // letter
+      ctx.fillStyle = selected ? TUNING.nodeTextSel : TUNING.nodeText;
+      ctx.font = `700 ${Math.floor(r * 1.05)}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(n.ch, n.x, n.y);
+    }
   }
-}
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
 }
