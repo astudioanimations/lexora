@@ -1,56 +1,64 @@
 /* =====================================================================
-   Lexora — Polished Theme Layer  (v1)
-   Drop-in cosmetic upgrade: scenic gradient background, ambient glow,
-   frosted puzzle panel, tactile tiles + buttons.
-   Palette: indigo #1B2A4A · linen #F4EDE4 · amber #E4A853
-   ---------------------------------------------------------------------
+   Lexora — Polished Theme Layer  (v2)
+   Cosmetic-only upgrade. No markup or gameplay changes required.
+
    HOW TO USE
-   1. Save this file as:  src/theme.css
-   2. In src/main.ts add at the top:   import './theme.css'
-      (import it AFTER './style.css' so it layers on top)
-   3. Reload. No markup changes required — it targets generic wrappers
-      and degrades gracefully. Tweak the --wl-* tokens below to taste.
+     • Save this file as:  src/theme.css   (overwrites your v1)
+     • src/main.ts already imports it AFTER './style.css'  ✓
+     • Reload. Tweak the --lx-* tokens below to taste.
+
+   Design goals (from Wordscapes / Zen Word polish study):
+     • Calm layered background with a warm "horizon" glow.
+     • Frosted glass card behind the puzzle so tiles never blend in.
+     • Readable empty slots (faint), tactile filled tiles.
+     • Elevated wheel panel + juicy tap feedback on buttons.
    ===================================================================== */
 
 :root {
   /* Brand palette */
-  --wl-indigo:      #1B2A4A;
-  --wl-indigo-deep: #101B33;
-  --wl-indigo-soft: #2C3F63;
-  --wl-linen:       #F4EDE4;
-  --wl-amber:       #E4A853;
-  --wl-amber-glow:  #F2C078;
+  --lx-indigo:      #1B2A4A;
+  --lx-indigo-deep: #0E1729;
+  --lx-indigo-soft: #2C3F63;
+  --lx-linen:       #F4EDE4;
+  --lx-amber:       #E4A853;
+  --lx-amber-glow:  #F2C078;
+  --lx-sage:        #5B8A72;
 
   /* Derived tokens */
-  --wl-ink:         #F4EDE4;
-  --wl-ink-dim:     rgba(244, 237, 228, 0.72);
-  --wl-panel:       rgba(244, 237, 228, 0.06);
-  --wl-panel-brd:   rgba(244, 237, 228, 0.14);
-  --wl-shadow:      0 18px 40px -12px rgba(0, 0, 0, 0.55);
-  --wl-radius:      22px;
+  --lx-ink:         #F4EDE4;
+  --lx-ink-dim:     rgba(244,237,228,.72);
+  --lx-card:        rgba(244,237,228,.05);
+  --lx-card-brd:    rgba(244,237,228,.12);
+  --lx-slot:        rgba(244,237,228,.09);
+  --lx-slot-brd:    rgba(244,237,228,.16);
+  --lx-shadow:      0 20px 44px -14px rgba(0,0,0,.6);
+  --lx-radius:      24px;
 }
 
 /* ------------------------------------------------------------------ */
-/* 1 · Scenic animated background                                      */
+/* 1 · Scenic layered background                                       */
+/*    Deep indigo sky up top, warm amber "horizon" glow near the       */
+/*    bottom where the wheel lives — reads as calm dawn/dusk.          */
 /* ------------------------------------------------------------------ */
-html, body {
-  min-height: 100%;
-  margin: 0;
-}
+html, body { min-height: 100%; margin: 0; }
 
 body {
-  color: var(--wl-ink);
-  /* Base vertical gradient: deep indigo → indigo */
+  color: var(--lx-ink);
   background:
-    radial-gradient(120% 90% at 50% -10%, var(--wl-indigo-soft) 0%, transparent 55%),
-    linear-gradient(180deg, var(--wl-indigo) 0%, var(--wl-indigo-deep) 100%);
+    /* warm horizon glow behind the wheel */
+    radial-gradient(140% 55% at 50% 108%, rgba(228,168,83,.20) 0%, transparent 60%),
+    /* soft top-left sky light */
+    radial-gradient(120% 90% at 22% -10%, var(--lx-indigo-soft) 0%, transparent 55%),
+    /* base vertical sky */
+    linear-gradient(180deg, var(--lx-indigo) 0%, var(--lx-indigo-deep) 100%);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  position: relative;
 }
 
-/* Two slow-drifting amber/indigo "auroras" for living depth.
-   Pointer-events:none so they never block touches on the wheel. */
+/* Two slow-drifting auroras for living depth.
+   pointer-events:none so they never block wheel touches. */
 body::before,
 body::after {
   content: "";
@@ -59,135 +67,158 @@ body::after {
   z-index: -2;
   pointer-events: none;
   background-repeat: no-repeat;
-  filter: blur(40px);
-  opacity: 0.55;
+  filter: blur(46px);
 }
-
 body::before {
+  opacity: .5;
   background:
-    radial-gradient(38% 32% at 22% 24%, var(--wl-amber-glow) 0%, transparent 70%),
-    radial-gradient(46% 40% at 82% 30%, var(--wl-indigo-soft) 0%, transparent 72%);
-  animation: wl-drift-a 26s ease-in-out infinite alternate;
+    radial-gradient(36% 30% at 20% 22%, var(--lx-amber-glow) 0%, transparent 70%),
+    radial-gradient(46% 40% at 82% 28%, var(--lx-indigo-soft) 0%, transparent 72%);
+  animation: lx-drift-a 28s ease-in-out infinite alternate;
 }
-
 body::after {
+  opacity: .38;
   background:
-    radial-gradient(40% 36% at 78% 82%, var(--wl-amber) 0%, transparent 70%),
-    radial-gradient(50% 44% at 18% 76%, var(--wl-indigo-soft) 0%, transparent 74%);
-  opacity: 0.4;
-  animation: wl-drift-b 32s ease-in-out infinite alternate;
+    radial-gradient(40% 34% at 78% 84%, var(--lx-amber) 0%, transparent 70%),
+    radial-gradient(52% 46% at 16% 78%, var(--lx-sage) 0%, transparent 74%);
+  animation: lx-drift-b 34s ease-in-out infinite alternate;
 }
-
-@keyframes wl-drift-a {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  100% { transform: translate3d(4%, 3%, 0) scale(1.12); }
+@keyframes lx-drift-a {
+  0%   { transform: translate3d(0,0,0) scale(1); }
+  100% { transform: translate3d(4%,3%,0) scale(1.12); }
 }
-@keyframes wl-drift-b {
-  0%   { transform: translate3d(0, 0, 0) scale(1.05); }
-  100% { transform: translate3d(-5%, -3%, 0) scale(1); }
+@keyframes lx-drift-b {
+  0%   { transform: translate3d(0,0,0) scale(1.05); }
+  100% { transform: translate3d(-5%,-3%,0) scale(1); }
 }
-
-/* Fine grain/vignette so flat areas don't look "plasticky" */
-body {
-  position: relative;
-}
-body > * { position: relative; z-index: 0; }
-
-/* Respect reduced-motion users */
 @media (prefers-reduced-motion: reduce) {
   body::before, body::after { animation: none; }
 }
 
-/* ------------------------------------------------------------------ */
-/* 2 · Frosted puzzle panel                                            */
-/*    Targets the common app wrapper ids/classes; adjust if yours      */
-/*    differ (e.g. #app, .game, .board).                               */
-/* ------------------------------------------------------------------ */
-#app,
-.game,
-.board,
-main {
-  backdrop-filter: blur(2px);
-}
+#app > * { position: relative; z-index: 0; }
 
-.puzzle,
-.grid,
-.crossword,
-.answers {
-  background: var(--wl-panel);
-  border: 1px solid var(--wl-panel-brd);
-  border-radius: var(--wl-radius);
-  box-shadow: var(--wl-shadow);
-  padding: clamp(12px, 3vw, 20px);
+/* ------------------------------------------------------------------ */
+/* 2 · Header, chips & progress bar                                    */
+/* ------------------------------------------------------------------ */
+.brand { text-shadow: 0 1px 12px rgba(0,0,0,.35); letter-spacing:.3px; }
+
+.chip,
+#level-num {
+  background: var(--lx-card);
+  border: 1px solid var(--lx-card-brd);
   backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.tier {
+  box-shadow: 0 4px 14px -4px rgba(0,0,0,.4);
+}
+
+/* Progress bar: subtle track + glowing amber fill */
+.bar {
+  background: rgba(255,255,255,.12) !important;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.25);
+}
+#bar-fill {
+  background: linear-gradient(90deg, var(--lx-amber) 0%, var(--lx-amber-glow) 100%) !important;
+  box-shadow: 0 0 10px rgba(242,192,120,.6);
 }
 
 /* ------------------------------------------------------------------ */
-/* 3 · Letter tiles — soft, tactile                                    */
+/* 3 · Frosted glass card behind the puzzle                            */
+/*    Gives the board a "surface" so tiles never blend into the bg.    */
 /* ------------------------------------------------------------------ */
-.tile,
-.cell.filled,
-.letter {
-  color: var(--wl-indigo-deep);
-  background: linear-gradient(180deg, #ffffff 0%, var(--wl-linen) 100%);
-  border-radius: 12px;
+#board-wrap {
+  background: var(--lx-card);
+  border: 1px solid var(--lx-card-brd);
+  border-radius: var(--lx-radius);
+  box-shadow: var(--lx-shadow);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  /* breathing room inside the card without breaking board.ts sizing */
+  padding: 12px 10px;
+}
+
+/* ------------------------------------------------------------------ */
+/* 4 · Cells — readable empty slots, tactile filled tiles              */
+/* ------------------------------------------------------------------ */
+/* Empty slots: faint but visible so the crossword shape reads
+   (fixes the "where's the last box" complaint). */
+.cell.slot {
+  background: var(--lx-slot);
+  box-shadow: inset 0 0 0 1.5px var(--lx-slot-brd);
+  border-radius: 10px;
+}
+.cell.empty { background: transparent; box-shadow: none; }
+
+/* Filled letter tiles: soft, warm, slightly raised. */
+.cell.filled {
+  color: var(--lx-indigo-deep);
+  background: linear-gradient(180deg, #ffffff 0%, var(--lx-linen) 100%);
+  border-radius: 10px;
   box-shadow:
-    0 2px 0 rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  transition: transform 140ms cubic-bezier(.34,1.56,.64,1), box-shadow 140ms ease;
+    0 3px 0 rgba(0,0,0,.14),
+    inset 0 1px 0 rgba(255,255,255,.9);
 }
+.cell.hint {
+  background: linear-gradient(180deg, #fff6e6 0%, #f6e4c4 100%);
+  box-shadow:
+    0 3px 0 rgba(0,0,0,.12),
+    inset 0 1px 0 rgba(255,255,255,.9),
+    0 0 12px rgba(242,192,120,.5);
+}
+.cell.filled .glyph { color: var(--lx-indigo-deep); }
 
-/* Pop when a letter locks into place */
-.tile.filled,
-.cell.filled,
-.letter.filled,
-.tile.pop {
-  animation: wl-pop 320ms cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes wl-pop {
-  0%   { transform: scale(0.6); opacity: 0; }
-  60%  { transform: scale(1.08); opacity: 1; }
-  100% { transform: scale(1); }
+/* ------------------------------------------------------------------ */
+/* 5 · Current-word readout                                            */
+/* ------------------------------------------------------------------ */
+#current {
+  color: var(--lx-amber-glow);
+  text-shadow: 0 2px 10px rgba(228,168,83,.35);
 }
 
 /* ------------------------------------------------------------------ */
-/* 4 · Buttons — Shuffle / Hint                                        */
+/* 6 · Wheel panel — elevated card with soft shadow + rim light        */
+/*    (The linen disc itself is drawn on <canvas>; we style its frame) */
 /* ------------------------------------------------------------------ */
-button,
-.btn {
-  color: var(--wl-indigo-deep);
-  background: linear-gradient(180deg, var(--wl-amber-glow) 0%, var(--wl-amber) 100%);
+.wheel {
+  border-radius: 28px;
+  box-shadow:
+    0 18px 40px -12px rgba(0,0,0,.55),
+    inset 0 1px 0 rgba(255,255,255,.6);
+}
+
+/* ------------------------------------------------------------------ */
+/* 7 · Buttons — juicy tap feedback (Shuffle / Hint)                   */
+/* ------------------------------------------------------------------ */
+.controls button,
+button, .btn {
+  color: var(--lx-indigo-deep);
+  background: linear-gradient(180deg, var(--lx-amber-glow) 0%, var(--lx-amber) 100%);
   border: none;
   border-radius: 999px;
-  padding: 12px 20px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
+  font-weight: 800;
+  letter-spacing: .2px;
   box-shadow:
-    0 6px 16px -4px rgba(228, 168, 83, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
-  cursor: pointer;
+    0 8px 18px -6px rgba(228,168,83,.6),
+    inset 0 1px 0 rgba(255,255,255,.65);
+  transition: transform 120ms cubic-bezier(.34,1.56,.64,1),
+              box-shadow 120ms ease, filter 120ms ease;
 }
-button:hover, .btn:hover { filter: brightness(1.04); }
+button:hover, .btn:hover { filter: brightness(1.05); }
 button:active, .btn:active {
-  transform: translateY(1px) scale(0.98);
-  box-shadow: 0 3px 10px -4px rgba(228, 168, 83, 0.5);
-}
-
-/* Secondary / ghost buttons keep the linen ink look */
-.btn--ghost,
-button.secondary {
-  background: transparent;
-  color: var(--wl-ink);
-  border: 1px solid var(--wl-panel-brd);
-  box-shadow: none;
+  transform: translateY(2px) scale(.97);
+  box-shadow: 0 3px 10px -6px rgba(228,168,83,.55),
+              inset 0 1px 0 rgba(255,255,255,.5);
 }
 
 /* ------------------------------------------------------------------ */
-/* 5 · Header / level title                                            */
+/* 8 · Toast                                                           */
 /* ------------------------------------------------------------------ */
-h1, h2, .level-title {
-  color: var(--wl-ink);
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
-  letter-spacing: 0.3px;
+#toast {
+  background: rgba(14,23,41,.92);
+  border: 1px solid var(--lx-card-brd);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 10px 28px rgba(0,0,0,.45);
 }
