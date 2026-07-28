@@ -10,6 +10,15 @@ import { celebrateLevel } from "./ui/celebration";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
+// ---- SCORING (tunable) -----------------------------------------------------
+const SCORE = {
+  perGridLetter: 10,   // grid word = 10 × its letters
+  bonusWord:     25,   // each new bonus word
+  hintCost:      75,   // deducted per hint; blocked if unaffordable
+  storeKey:      "lexora.score",
+};
+// ----------------------------------------------------------------------------
+
 let levels: Level[] = [];
 let progress: Progress;
 let level: Level;
@@ -17,10 +26,16 @@ let round: RoundState;
 let board: Board;
 let wheel: Wheel;
 
+// Cumulative, persisted score + this-level delta for the celebration card.
+let score = loadScore();
+let levelPoints = 0;
+
 async function boot() {
   progress = loadProgress();
   await loadDictionary().catch(() => {});
   levels = await loadLevelPack();
+  ensureScoreEl();
+  renderScore(false);
   startLevel(clamp(progress.current, 1, levels.length));
 }
 
@@ -29,7 +44,9 @@ function clamp(n: number, lo: number, hi: number) { return Math.max(lo, Math.min
 function startLevel(n: number) {
   level = levels.find((l) => l.levelNumber === n) ?? levels[0];
   round = newRound();
-  $("#level-num").textContent = `Level ${level.levelNumber}`;
+  levelPoints = 0;
+  // Level X / Total
+  $("#level-num").textContent = `Level ${level.levelNumber} / ${levels.length}`;
   $("#tier").textContent = level.tier;
   $("#tier").className = `tier ${level.tier}`;
   board = new Board($("#board-wrap"), level);
@@ -47,14 +64,18 @@ function onSubmit(raw: string) {
   switch (res.kind) {
     case "grid":
       board.revealWord(res.word);
-      if (!res.alreadyFound) pulseScore();
+      if (!res.alreadyFound) {
+        award(res.word.length * SCORE.perGridLetter);
+        pulseScore();
+      }
       updateProgressBar();
       if (isLevelComplete(level, round)) return onComplete();
       break;
     case "bonus":
       if (!res.alreadyFound) {
         $("#bonus-count").textContent = String(round.foundBonus.size);
-        toast(`+bonus: ${res.word.toUpperCase()}`);
+        award(SCORE.bonusWord);
+        toast(`+bonus: ${res.word.toUpperCase()} (+${SCORE.bonusWord})`);
       }
       break;
     case "too-short": break;
@@ -66,22 +87,69 @@ function onSubmit(raw: string) {
 }
 
 function onComplete() {
-  const score = computeScore(round);
-  progress = markCleared(progress, level, score, [...round.foundBonus]);
+  const finalScore = computeScore(round); // kept for save/leaderboard logic
+  progress = markCleared(progress, level, finalScore, [...round.foundBonus]);
 
   const finishedNumber = level.levelNumber;
   const next = finishedNumber + 1;
 
-  // Polished celebration: confetti + card, then advance on "Next Level".
   celebrateLevel({
     level: finishedNumber,
-    score,
+    score: levelPoints,            // points earned THIS level (consistent w/ counter)
     bonus: round.foundBonus.size,
     onNext: () => {
       if (next <= levels.length) startLevel(next);
       else toast("You finished every level! 🎉", 4000);
     },
   });
+}
+
+// ---- Score helpers ---------------------------------------------------------
+function loadScore(): number {
+  const v = Number(localStorage.getItem(SCORE.storeKey));
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+function saveScore() { localStorage.setItem(SCORE.storeKey, String(score)); }
+
+function award(pts: number) {
+  score += pts;
+  levelPoints += pts;
+  saveScore();
+  renderScore(true);
+}
+
+/** Try to spend points. Returns false (and warns) if unaffordable. */
+function spend(pts: number): boolean {
+  if (score < pts) {
+    toast(`Need ${pts - score} more points for a hint`);
+    return false;
+  }
+  score -= pts;
+  saveScore();
+  renderScore(true);
+  return true;
+}
+
+/** Create the score chip in the header if it doesn't already exist. */
+function ensureScoreEl() {
+  if (document.getElementById("score")) return;
+  const chip = document.createElement("span");
+  chip.id = "score";
+  chip.className = "chip score-chip";
+  chip.setAttribute("aria-live", "polite");
+  // Insert into the header, before the level number if present.
+  const header = document.querySelector("header");
+  const levelNum = document.getElementById("level-num");
+  if (header && levelNum) header.insertBefore(chip, levelNum);
+  else if (header) header.appendChild(chip);
+  else document.body.appendChild(chip);
+}
+
+function renderScore(animate: boolean) {
+  const el = document.getElementById("score");
+  if (!el) return;
+  el.textContent = `⭐ ${score.toLocaleString()}`;
+  if (animate) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
 }
 
 function updateProgressBar() {
@@ -104,6 +172,14 @@ function toast(msg: string, ms = 1200) {
 // controls
 document.addEventListener("DOMContentLoaded", () => {
   $("#shuffle").addEventListener("click", () => wheel.shuffle());
-  $("#hint").addEventListener("click", () => { if (!board.revealHintLetter()) toast("No letters left to hint"); });
+  $("#hint").addEventListener("click", () => {
+    // Charge for the hint; only reveal if the player can afford it AND a letter is left.
+    if (!spend(SCORE.hintCost)) return;
+    if (!board.revealHintLetter()) {
+      // No letter to reveal → refund so the player isn't charged for nothing.
+      award(SCORE.hintCost);
+      toast("No letters left to hint");
+    }
+  });
   boot();
 });

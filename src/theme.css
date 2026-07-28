@@ -234,3 +234,12 @@ button:active, .btn:active {
   transition: transform 120ms cubic-bezier(.34,1.56,.64,1);
 }
 .lx-cel-next:active { transform: translateY(2px) scale(.98); }
+
+/* Score chip */
+.score-chip { font-variant-numeric: tabular-nums; font-weight: 800; }
+.score-chip.bump { animation: lx-bump .28s cubic-bezier(.34,1.56,.64,1); }
+@keyframes lx-bump {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.18); color: var(--lx-amber-glow); }
+  100% { transform: scale(1); }
+}
