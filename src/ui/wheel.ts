@@ -26,7 +26,7 @@ const TUNING = {
   hapticMs: 8,                 // vibration per new letter (0 = off)
   minWordLength: 3,
   maxCanvasPx: 420,            // hard ceiling
-  viewportHeightFactor: 0.40,  // wheel never taller than 40% of viewport height
+  viewportHeightFactor: 0.36,  // wheel never taller than 40% of viewport height
   widthFactor: 0.86,           // …nor wider than 86% of its parent's width
   // --- v2 look ---
   faceColor:      "#F4EDE4",   // wheel disc face (linen)

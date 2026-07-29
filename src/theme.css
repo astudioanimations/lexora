@@ -51,10 +51,11 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -3;
-  background-image:
-    /* readability wash: darkens top + bottom slightly */
-    linear-gradient(180deg, rgba(14,23,41,.35) 0%, rgba(14,23,41,0) 30%,
-                            rgba(14,23,41,0) 62%, rgba(14,23,41,.30) 100%),
+    background-image:
+    /* readability wash: darker top so header/HUD stars don't show through */
+    linear-gradient(180deg, rgba(14,23,41,.72) 0%, rgba(14,23,41,.30) 12%,
+                            rgba(14,23,41,0) 28%, rgba(14,23,41,0) 62%,
+                            rgba(14,23,41,.30) 100%),
     url("/bg.png");
   background-size: cover, cover;
   background-position: center, center;
