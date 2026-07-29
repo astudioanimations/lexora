@@ -4,38 +4,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
   <meta name="theme-color" content="#1B2A4A" />
-  /manifest.webmanifest
-  /favicon.ico
-  /icons/icon-32.png />
-  /icons/apple-touch-icon.png
-  <!-- iOS splash screens (optional but nice for installed PWA) -->
-  /icons/splash-1290x2796.pngpx) and (device-height:932px) and (-webkit-device-pixel-ratio:3)" />
-  x2556.png" media="(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3)" />
-  <link rel="apple-touch-.png)" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+    
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+<!-- iOS splash screens (optional but nice for installed PWA) -->
+  <link rel="apple-touch-startup-image" href="/icons/splash-1290x2796.png" media="(device-width:430px) and (device-height:932px) and (-webkit-device-pixel-ratio:3)" />
+  <link rel="apple-touch-startup-image" href="/icons/splash-1179x2556.png" media="(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3)" />
+  <link rel="apple-touch-startup-image" href="/icons/splash-1170x2532.png" media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3)" />
   <title>Lexora — connect · cross · discover</title>
 </head>
 <body>
   <div id="app">
     <header>
       <span class="brand">Lexora</span>
-      <span id="score" class="chip score-chip">⭐ 0</span>
       <span id="level-num">Level 1</span>
       <span id="tier" class="tier easy">easy</span>
     </header>
+
     <div class="hud">
       <span class="chip">Words <span id="progress">0/0</span></span>
       <div class="bar"><div id="bar-fill"></div></div>
       <span class="chip">Bonus <span id="bonus-count">0</span></span>
     </div>
+
     <div id="board-wrap"></div>
     <div id="current"></div>
     <div id="wheel-wrap"></div>
+
     <div class="controls">
       <button id="shuffle">🔀 Shuffle</button>
       <button id="hint">💡 Hint</button>
     </div>
   </div>
   <div id="toast"></div>
-  /src/main.ts
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
