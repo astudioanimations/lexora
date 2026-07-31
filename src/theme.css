@@ -313,13 +313,17 @@ button:active, .btn:active {
 
 /* Footer links row: Privacy (left) · Delete my data (right) */
 .acc-foot {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-top: 16px; padding-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
   border-top: 1px solid rgba(27,42,74,.12);
 }
 .acc-foot.center { justify-content: center; }
 .acc-link {
-  background: none; border: none; padding: 0; cursor: pointer;
+  background: none; border: none; padding: 4px 2px; cursor: pointer;
   font-size: 13px; font-weight: 700; color: #5b6478; text-decoration: none;
 }
 .acc-link.danger { color: #d9705b; }
