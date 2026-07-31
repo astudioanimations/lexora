@@ -2,51 +2,39 @@
  * Lexora — account button + cloud score sync.
  * Save as:  src/ui/account.ts
  *
- * Responsibilities
- *  - Injects a state-aware account button into the header (👤 / avatar initial).
- *  - Opens a small sheet: Google sign-in + email magic-link, or sign-out.
- *  - On sign-in, PULLS cloud progress and merges with local (higher wins).
- *  - Exposes schedulePush() for main.ts to call (debounced) on score changes.
- *
- * Reactive refresh (fixes "avatar disappears until hard refresh"):
- *  - Re-checks the session on window focus + visibilitychange.
- *  - Retries a couple of times shortly after load, because the Set-Cookie from
- *    an OAuth / magic-link callback can arrive just after first paint.
- *
- * Local-first: everything keeps working signed-out via localStorage. Cloud is
- * an additive layer, so offline play (PWA on a plane) is unaffected.
+ *  - Signed OUT: header shows a "Sign in" text pill.
+ *  - Signed IN:  header shows the avatar initial; tapping shows the email.
+ *  - Sheet has a Privacy link (both states) + Delete my data (signed in).
+ *  - Reactive refresh (focus / visibility / retry) so the avatar updates
+ *    without a hard refresh after the OAuth or magic-link callback.
+ *  - Local-first: all works signed-out via localStorage; cloud is additive.
  */
 import { authClient } from "../auth/client";
 
 const LS_SCORE = "lexora.score";
-const LS_LEVEL = "lexora.current";      // adjust if your key differs
-const LS_BONUS = "lexora.bonusWords";   // optional
+const LS_LEVEL = "lexora.current";
+const LS_BONUS = "lexora.bonusWords";
+const PRIVACY_URL = "/privacy.html";
 
 type LocalProgress = { score: number; currentLevel: number; bonusWords: string[] };
 
 let signedIn = false;
-let hydrated = false;                                  // guard: pull/merge cloud only once
-let onCloud: ((p: LocalProgress) => void) | undefined; // callback into main.ts
+let hydrated = false;
+let onCloud: ((p: LocalProgress) => void) | undefined;
 
 /* ------------------------------------------------------------------ */
-/* Public API used by main.ts                                          */
+/* Public API                                                          */
 /* ------------------------------------------------------------------ */
-
-/** Call once at startup. Renders the button and hydrates from cloud if signed in. */
 export async function initAccountUI(onCloudProgress?: (p: LocalProgress) => void) {
   onCloud = onCloudProgress;
   ensureButton();
   await refreshAccount();
 
-  // Re-check when the tab regains focus (e.g. returning from Google OAuth) or
-  // becomes visible again — keeps the avatar in sync without a hard refresh.
   window.addEventListener("focus", () => { void refreshAccount(); });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") void refreshAccount();
   });
 
-  // Belt-and-braces: the auth cookie can land a beat after first paint, so if we
-  // look signed-out on load, retry briefly to catch the freshly-set session.
   if (!signedIn) {
     for (const delay of [400, 1200, 2500]) {
       await wait(delay);
@@ -56,7 +44,6 @@ export async function initAccountUI(onCloudProgress?: (p: LocalProgress) => void
   }
 }
 
-/** Debounced push of current progress to the cloud (no-op when signed out). */
 let pushTimer = 0;
 export function schedulePush(p: LocalProgress) {
   if (!signedIn) return;
@@ -73,17 +60,16 @@ async function refreshAccount() {
   signedIn = !!user;
   renderButton(user);
 
-  // Pull + merge cloud progress exactly once, the first time we see a session.
   if (signedIn && !hydrated) {
     hydrated = true;
     const cloud = await pullProgress();
     if (cloud) {
       const merged = mergeProgress(readLocal(), cloud);
       writeLocal(merged);
-      onCloud?.(merged);          // let main.ts refresh the score UI
-      void pushProgress(merged);  // converge both sides
+      onCloud?.(merged);
+      void pushProgress(merged);
     } else {
-      void pushProgress(readLocal()); // first login on this account → seed cloud
+      void pushProgress(readLocal());
     }
   }
 }
@@ -152,7 +138,7 @@ function ensureButton() {
   btn.id = "account-btn";
   btn.className = "account-btn";
   btn.type = "button";
-  btn.textContent = "👤";
+  btn.textContent = "Sign in";
   btn.addEventListener("click", openSheet);
   const header = document.querySelector("header");
   header?.appendChild(btn);
@@ -167,7 +153,7 @@ function renderButton(user: { email?: string | null; name?: string | null; image
     btn.classList.add("signed-in");
     btn.title = user.email || "Signed in";
   } else {
-    btn.textContent = "👤";
+    btn.textContent = "Sign in";
     btn.classList.remove("signed-in");
     btn.title = "Sign in";
   }
@@ -186,11 +172,15 @@ function openSheet() {
     sheet.innerHTML = user
       ? `
         <div class="acc-card">
-          <p class="acc-title">Signed in</p>
-          <p class="acc-email">${user.email ?? ""}</p>
-          <p class="acc-note">Your score syncs across devices. ☁️</p>
-          <button class="acc-btn acc-danger" id="acc-signout">Sign out</button>
-          <button class="acc-btn acc-ghost" id="acc-delete">Delete my data</button>
+          <div class="acc-icon">🔗</div>
+          <p class="acc-title">Synced</p>
+          <p class="acc-email">Signed in as <strong>${user.email ?? ""}</strong>.</p>
+          <p class="acc-note">Your score syncs across your devices. ☁️</p>
+          <button class="acc-btn acc-ghost" id="acc-signout">Sign out</button>
+          <div class="acc-foot">
+            <a class="acc-link" href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a>
+            <button class="acc-link danger" id="acc-delete" type="button">Delete my data</button>
+          </div>
         </div>`
       : `
         <div class="acc-card">
@@ -202,6 +192,9 @@ function openSheet() {
                  placeholder="you@example.com" autocomplete="email" />
           <button class="acc-btn acc-primary" id="acc-magic">Email me a sign-in link</button>
           <p class="acc-msg" id="acc-msg"></p>
+          <div class="acc-foot center">
+            <a class="acc-link" href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a>
+          </div>
         </div>`;
 
     wireSheet(sheet, !!user);
