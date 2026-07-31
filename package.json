@@ -11,10 +11,19 @@
     "test": "node --test"
   },
   "devDependencies": {
+    "@better-auth/cli": "^1.4.21",
+    "better-sqlite3": "^13.0.2",
     "crossword-layout-generator": "^0.1.1",
     "typescript": "^5.5.0",
     "vite": "^5.4.0",
     "vite-plugin-pwa": "^0.20.0",
-    "word-list": "^4.1.0"
+    "word-list": "^4.1.0",
+    "wrangler": "^4.115.0"
+  },
+  "dependencies": {
+    "better-auth": "^1.6.25",
+    "kysely": "^0.29.4",
+    "kysely-d1": "^0.4.0",
+    "resend": "^6.18.1"
   }
 }

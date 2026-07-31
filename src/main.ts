@@ -7,6 +7,10 @@ import { loadProgress, markCleared, loadLevelPack, type Progress } from "./game/
 import "./style.css";
 import "./theme.css"; // layers on top
 import { celebrateLevel } from "./ui/celebration";
+import { applyDailyBackground } from "./ui/daily-bg";
+import { initAccountUI, schedulePush } from "./ui/account";
+
+applyDailyBackground();   // top-level; sets --lx-bg before first paint
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
@@ -37,6 +41,13 @@ async function boot() {
   ensureScoreEl();
   renderScore(false);
   startLevel(clamp(progress.current, 1, levels.length));
+
+  // Accounts + cloud score. Pulls saved progress if signed in and merges
+  // (higher score/level wins). No-op when signed out — pure local play.
+  await initAccountUI((cloud) => {
+    score = cloud.score;
+    renderScore(false);
+  });
 }
 
 function clamp(n: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, n)); }
@@ -116,6 +127,7 @@ function award(pts: number) {
   levelPoints += pts;
   saveScore();
   renderScore(true);
+  schedulePush({ score, currentLevel: level?.levelNumber ?? 1, bonusWords: [] });
 }
 
 /** Try to spend points. Returns false (and warns) if unaffordable. */
@@ -127,6 +139,7 @@ function spend(pts: number): boolean {
   score -= pts;
   saveScore();
   renderScore(true);
+  schedulePush({ score, currentLevel: level?.levelNumber ?? 1, bonusWords: [] });
   return true;
 }
 

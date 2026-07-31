@@ -1,0 +1,13 @@
+name = "lexora"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lexora-db"
+database_id = "ca4c69bb-091f-4c20-abe8-a3ef071acf27"
+
+[[kv_namespaces]]
+binding = "AUTH_KV"
+id = "a9adcd03bbee4a93a9daba2f2351184a"
