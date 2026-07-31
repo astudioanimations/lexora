@@ -242,23 +242,30 @@ button:active, .btn:active {
   100% { transform: scale(1); }
 }
 
-/* ================================================================== */
-/* 10 · Account button + sign-in sheet (used by src/ui/account.ts)    */
-/* ================================================================== */
+
+/* ==================================================================
+   10 Lexora — Account button + sign-in sheet (v2 layout).
+   REPLACE the existing "Section 10" block at the end of src/theme.css
+   with this one (adds icon, footer links, and a text "Sign in" button).
+   ================================================================== */
+
+/* Header button: pill when signed OUT ("Sign in"), circle when signed IN */
 .account-btn {
   margin-left: 8px;
-  width: 34px; height: 34px;
-  border-radius: 50%;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
   border: 1px solid var(--lx-card-brd);
   background: var(--lx-card);
   color: var(--lx-ink);
-  font-weight: 800; font-size: 15px;
+  font-weight: 800; font-size: 13px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex: 0 0 auto;
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  padding: 0;
 }
 .account-btn.signed-in {
+  width: 34px; padding: 0; font-size: 15px;
   background: linear-gradient(180deg, var(--lx-amber-glow), var(--lx-amber));
   color: var(--lx-indigo-deep);
   border-color: transparent;
@@ -271,17 +278,19 @@ button:active, .btn:active {
   backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
 }
 .acc-card {
+  position: relative;
   width: min(420px, 94vw);
   margin-bottom: max(16px, env(safe-area-inset-bottom));
   background: linear-gradient(180deg, rgba(244,237,228,.99), rgba(244,237,228,.96));
   color: var(--lx-indigo-deep);
   border-radius: 22px;
   box-shadow: 0 28px 60px -18px rgba(0,0,0,.65);
-  padding: 22px 20px;
+  padding: 24px 20px 16px;
   text-align: center;
 }
-.acc-title { margin: 0 0 4px; font-size: 19px; font-weight: 900; }
-.acc-email { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--lx-indigo); }
+.acc-icon  { font-size: 30px; margin-bottom: 6px; }
+.acc-title { margin: 0 0 6px; font-size: 22px; font-weight: 900; }
+.acc-email { margin: 0 0 4px; font-size: 14px; color: var(--lx-indigo); }
 .acc-note  { margin: 0 0 16px; font-size: 13px; color: #5b6478; }
 .acc-msg   { margin: 10px 0 0; font-size: 13px; color: var(--lx-indigo); min-height: 18px; }
 
@@ -292,8 +301,7 @@ button:active, .btn:active {
 }
 .acc-primary { background: linear-gradient(180deg, var(--lx-amber-glow), var(--lx-amber)); color: var(--lx-indigo-deep); }
 .acc-google  { background: #fff; color: #1f1f1f; border: 1px solid #dadce0; }
-.acc-ghost   { background: transparent; color: #5b6478; border: 1px solid #d9d3c8; }
-.acc-danger  { background: #d9705b; color: #fff; }
+.acc-ghost   { background: #fff; color: var(--lx-indigo-deep); border: 1px solid #d9d3c8; }
 .acc-btn:active { transform: translateY(1px) scale(.99); }
 
 .acc-or { margin: 12px 0 4px; font-size: 12px; color: #8b93a3; text-transform: uppercase; letter-spacing: .1em; }
@@ -302,3 +310,17 @@ button:active, .btn:active {
   border: 1px solid #d9d3c8; background: #fff; color: #1f1f1f;
   font-size: 15px; margin-top: 4px;
 }
+
+/* Footer links row: Privacy (left) · Delete my data (right) */
+.acc-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid rgba(27,42,74,.12);
+}
+.acc-foot.center { justify-content: center; }
+.acc-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 13px; font-weight: 700; color: #5b6478; text-decoration: none;
+}
+.acc-link.danger { color: #d9705b; }
+.acc-link:hover { text-decoration: underline; }
