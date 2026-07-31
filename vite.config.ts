@@ -10,7 +10,10 @@ export default defineConfig({
       includeAssets: ["icons/*.png", "level-pack.json", "dictionary.txt"],
       manifest: false, // we ship our own public/manifest.webmanifest
       workbox: {
-        globPatterns: ["**/*.{js,css,html,png,json,txt,webmanifest}"],
+        globPatterns: ["**/*.{js,css,html,png,webp,json,txt,webmanifest}"],
+        // Never let the SW serve the cached app-shell for auth/API routes —
+        // OAuth callbacks and session/progress calls must reach the server.
+        navigateFallbackDenylist: [/^\/api\//],
         // Level pack + dictionary are static; cache-first once fetched.
         runtimeCaching: [
           {

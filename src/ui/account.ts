@@ -3,10 +3,15 @@
  * Save as:  src/ui/account.ts
  *
  * Responsibilities
- *  - Injects a state-aware account button into the header (☰ / avatar).
+ *  - Injects a state-aware account button into the header (👤 / avatar initial).
  *  - Opens a small sheet: Google sign-in + email magic-link, or sign-out.
  *  - On sign-in, PULLS cloud progress and merges with local (higher wins).
- *  - Exposes pushProgress() for main.ts to call (debounced) when score changes.
+ *  - Exposes schedulePush() for main.ts to call (debounced) on score changes.
+ *
+ * Reactive refresh (fixes "avatar disappears until hard refresh"):
+ *  - Re-checks the session on window focus + visibilitychange.
+ *  - Retries a couple of times shortly after load, because the Set-Cookie from
+ *    an OAuth / magic-link callback can arrive just after first paint.
  *
  * Local-first: everything keeps working signed-out via localStorage. Cloud is
  * an additive layer, so offline play (PWA on a plane) is unaffected.
@@ -20,6 +25,8 @@ const LS_BONUS = "lexora.bonusWords";   // optional
 type LocalProgress = { score: number; currentLevel: number; bonusWords: string[] };
 
 let signedIn = false;
+let hydrated = false;                                  // guard: pull/merge cloud only once
+let onCloud: ((p: LocalProgress) => void) | undefined; // callback into main.ts
 
 /* ------------------------------------------------------------------ */
 /* Public API used by main.ts                                          */
@@ -27,22 +34,24 @@ let signedIn = false;
 
 /** Call once at startup. Renders the button and hydrates from cloud if signed in. */
 export async function initAccountUI(onCloudProgress?: (p: LocalProgress) => void) {
+  onCloud = onCloudProgress;
   ensureButton();
-  const { data } = await authClient.getSession();
-  signedIn = !!data?.user;
-  renderButton(data?.user ?? null);
+  await refreshAccount();
 
-  if (signedIn) {
-    const cloud = await pullProgress();
-    if (cloud) {
-      const merged = mergeProgress(readLocal(), cloud);
-      writeLocal(merged);
-      onCloudProgress?.(merged);          // let main.ts refresh the UI
-      // push the merged result back so both sides converge
-      void pushProgress(merged);
-    } else {
-      // first login on this account → seed cloud with local
-      void pushProgress(readLocal());
+  // Re-check when the tab regains focus (e.g. returning from Google OAuth) or
+  // becomes visible again — keeps the avatar in sync without a hard refresh.
+  window.addEventListener("focus", () => { void refreshAccount(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void refreshAccount();
+  });
+
+  // Belt-and-braces: the auth cookie can land a beat after first paint, so if we
+  // look signed-out on load, retry briefly to catch the freshly-set session.
+  if (!signedIn) {
+    for (const delay of [400, 1200, 2500]) {
+      await wait(delay);
+      await refreshAccount();
+      if (signedIn) break;
     }
   }
 }
@@ -56,11 +65,35 @@ export function schedulePush(p: LocalProgress) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Session refresh + cloud hydration                                   */
+/* ------------------------------------------------------------------ */
+async function refreshAccount() {
+  const res = await authClient.getSession().catch(() => null);
+  const user = res?.data?.user ?? null;
+  signedIn = !!user;
+  renderButton(user);
+
+  // Pull + merge cloud progress exactly once, the first time we see a session.
+  if (signedIn && !hydrated) {
+    hydrated = true;
+    const cloud = await pullProgress();
+    if (cloud) {
+      const merged = mergeProgress(readLocal(), cloud);
+      writeLocal(merged);
+      onCloud?.(merged);          // let main.ts refresh the score UI
+      void pushProgress(merged);  // converge both sides
+    } else {
+      void pushProgress(readLocal()); // first login on this account → seed cloud
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Cloud calls                                                         */
 /* ------------------------------------------------------------------ */
 async function pullProgress(): Promise<LocalProgress | null> {
   try {
-    const res = await fetch("/api/progress", { credentials: "include" });
+    const res = await fetch("/api/progress", { credentials: "include", cache: "no-store" });
     if (!res.ok) return null;
     const { progress } = await res.json();
     if (!progress) return null;
@@ -108,6 +141,7 @@ function mergeProgress(a: LocalProgress, b: LocalProgress): LocalProgress {
 function safeArr(s: string | null): string[] {
   try { const v = JSON.parse(s ?? "[]"); return Array.isArray(v) ? v : []; } catch { return []; }
 }
+function wait(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
 /* ------------------------------------------------------------------ */
 /* UI                                                                  */
@@ -147,8 +181,8 @@ function openSheet() {
   sheet.id = "account-sheet";
   sheet.className = "account-sheet";
 
-  authClient.getSession().then(({ data }) => {
-    const user = data?.user;
+  authClient.getSession().then((res) => {
+    const user = res?.data?.user;
     sheet.innerHTML = user
       ? `
         <div class="acc-card">
