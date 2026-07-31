@@ -324,3 +324,13 @@ button:active, .btn:active {
 }
 .acc-link.danger { color: #d9705b; }
 .acc-link:hover { text-decoration: underline; }
+
+/* Keep header items on one row and never clip the account button */
+header {
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow: visible;
+}
+.account-btn { flex: 0 0 auto; }          /* never shrink away */
+#level-num { white-space: nowrap; }
+.brand { flex: 0 1 auto; min-width: 0; }  /* brand yields space first */
