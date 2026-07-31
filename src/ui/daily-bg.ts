@@ -22,7 +22,7 @@
 // different players get different rotations:  applyDailyBackground(seed)
 //
 
-const BG_COUNT = 31; // number of bg-N.webp files in public/
+const BG_COUNT = 13; // number of bg-N.webp files in public/
 const BG_EXT = "webp"; // change to "png" if you keep PNGs
 
 /** Whole-day number based on the user's LOCAL date (not UTC). */
