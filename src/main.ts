@@ -9,6 +9,7 @@ import "./theme.css"; // layers on top
 import { celebrateLevel } from "./ui/celebration";
 import { applyDailyBackground } from "./ui/daily-bg";
 import { initAccountUI, schedulePush } from "./ui/account";
+import { offerRewardedTopUp } from "./ads/ads";
 
 applyDailyBackground();   // top-level; sets --lx-bg before first paint
 
@@ -186,13 +187,18 @@ function toast(msg: string, ms = 1200) {
 document.addEventListener("DOMContentLoaded", () => {
   $("#shuffle").addEventListener("click", () => wheel.shuffle());
   $("#hint").addEventListener("click", () => {
-    // Charge for the hint; only reveal if the player can afford it AND a letter is left.
+  if (score >= SCORE.hintCost) {
     if (!spend(SCORE.hintCost)) return;
-    if (!board.revealHintLetter()) {
-      // No letter to reveal → refund so the player isn't charged for nothing.
-      award(SCORE.hintCost);
-      toast("No letters left to hint");
-    }
+    if (!board.revealHintLetter()) { award(SCORE.hintCost); toast("No letters left to hint"); }
+    return;
+  }
+  // Not enough points → offer a rewarded ad instead of a dead end.
+  offerRewardedTopUp({
+    reward: SCORE.hintCost,
+    reason: "Not enough points for a hint",
+    toast,
+    onReward: (pts) => award(pts),
   });
+});
   boot();
 });
