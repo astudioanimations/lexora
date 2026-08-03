@@ -10,7 +10,7 @@ _Last updated: 21 Jul 2026_
 | Lexora brand + icons | ✅ |
 | Full PWA client built + tested | ✅ |
 | Pushed to GitHub | ✅ `github.com/tessera11/Lexora` |
-| **Live on Cloudflare Pages** | ✅ `Lexora-9up.pages.dev` |
+| **Live on Cloudflare Pages** | ✅ `https://lexora-dw0.pages.dev` |
 | Auto-deploy on push | ✅ (Connect to Git) |
 | **Scaled to 300 levels** | ✅ verified live (`Levels live: 300`) |
 | **Proper-noun leak closed** | ✅ verified live (`CLEAN - 0 leaks`) |
@@ -18,7 +18,7 @@ _Last updated: 21 Jul 2026_
 From here, any change is just `git add . && git commit -m "..." && git push` — live in ~2 min.
 
 ## Live URL
-🔗 https://Lexora-9up.pages.dev/
+🔗 [lexora-dw0.pages.dev](https://lexora-dw0.pages.dev)
 
 ## 300-level generation — verified results (21 Jul 2026)
 Clean frequency-ordered dictionary: 23,247 words.
@@ -54,7 +54,7 @@ Generator deps (dev-only): `crossword-layout-generator`, `word-list`.
 Data inputs: `data/en_50k.txt` (hermitdave FrequencyWords), `data/profanity.txt` (LDNOOBW).
 
 ## Deploy workflow (recap)
-- **Production:** pushes to `main` → auto-deploy to `Lexora-9up.pages.dev`.
+- **Production:** pushes to `main` → auto-deploy to `https://lexora-dw0.pages.dev`.
 - **Previews:** pushes to any other branch → unique preview URL (safe playtesting).
 - **Rollback:** Cloudflare dashboard → project → Deployments → pick a good build → Rollback.
 

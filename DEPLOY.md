@@ -78,7 +78,7 @@ publishes `dist/`.
 
 ## Step 4 — Verify the live site
 
-You’ll get a URL like `https://Lexora.pages.dev` (and a per-deploy preview URL).
+You’ll get a URL like `https://lexora-dw0.pages.dev` (and a per-deploy preview URL).
 
 Check:
 - [ ] Board + wheel render, level 1 (“father”) loads.
@@ -101,7 +101,7 @@ git commit -m "tweak wheel hit-radius"
 git push
 ```
 
-- Pushes to **`main`** → production (`Lexora.pages.dev`).
+- Pushes to **`main`** → production (`https://lexora-dw0.pages.dev`).
 - Pushes to any **other branch** → a unique preview URL (great for playtesting a
   change before it goes live).
 
