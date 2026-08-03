@@ -82,9 +82,12 @@ function isSubBag(wordBag, containerBag) {
 //    headroom at the higher level counts; low-end (the tier "floor") preserved.
 // ============================================================
 const TIERS = [
-  { name: "easy",   anchorLen: [6, 6], rankWindow: [150, 2000],   poolSize: 8,  levels: 90 },
-  { name: "medium", anchorLen: [6, 7], rankWindow: [800, 4500],   poolSize: 11, levels: 110 },
-  { name: "hard",   anchorLen: [7, 8], rankWindow: [2500, 10000], poolSize: 14, levels: 100 },
+  { name: "intro",  anchorLen: [6, 6], rankWindow: [100, 1200],  poolSize: 6,  levels: 20 },
+  { name: "easy",   anchorLen: [6, 6], rankWindow: [150, 2200],  poolSize: 8,  levels: 40 },
+  { name: "rising", anchorLen: [6, 7], rankWindow: [500, 3500],  poolSize: 10, levels: 55 },
+  { name: "medium", anchorLen: [7, 7], rankWindow: [900, 5000],  poolSize: 11, levels: 65 },
+  { name: "hard",   anchorLen: [7, 8], rankWindow: [2000, 8000], poolSize: 13, levels: 60 },
+  { name: "expert", anchorLen: [8, 8], rankWindow: [3000, 12000],poolSize: 14, levels: 60 },
 ];
 
 const commonPool = dictWithBags.slice(0, 12000); // matching pool: common enough to be fair grid words

@@ -91,6 +91,9 @@ body::after {
   -webkit-backdrop-filter: blur(6px);
 }
 .tier { box-shadow: 0 4px 14px -4px rgba(0,0,0,.45); }
+.tier.intro  { background:#7BA88C; color:var(--lx-ink); }
+.tier.rising { background:#5B8AA6; color:var(--lx-ink); }
+.tier.expert { background:#9B5BA6; color:var(--lx-ink); }
 
 .bar {
   background: rgba(255,255,255,.14) !important;
