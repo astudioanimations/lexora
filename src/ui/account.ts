@@ -14,6 +14,7 @@ import { authClient } from "../auth/client";
 const LS_SCORE = "lexora.score";
 const LS_LEVEL = "lexora.current";
 const LS_BONUS = "lexora.bonusWords";
+const LS_GIFT  = "lexora.lastGiftDay";
 const PRIVACY_URL = "/privacy.html";
 
 type LocalProgress = { score: number; currentLevel: number; bonusWords: string[] };
@@ -207,14 +208,33 @@ function openSheet() {
 function wireSheet(sheet: HTMLElement, isUser: boolean) {
   if (isUser) {
     sheet.querySelector("#acc-signout")?.addEventListener("click", async () => {
-      await authClient.signOut();
-      location.reload();
-    });
-    sheet.querySelector("#acc-delete")?.addEventListener("click", async () => {
-      if (!confirm("Delete your account and cloud-saved progress? This cannot be undone.")) return;
-      await fetch("/api/account/delete", { method: "POST", credentials: "include" }).catch(() => {});
       await authClient.signOut().catch(() => {});
       location.reload();
+    });
+
+    sheet.querySelector("#acc-delete")?.addEventListener("click", async () => {
+      // NOTE: native confirm() is unreliable in installed PWAs (standalone mode)
+      // — it can return false instantly, so the request never fires. Use an
+      // in-app dialog instead.
+      const ok = await confirmDialog(
+        "Delete your account and cloud-saved progress? This cannot be undone."
+      );
+      if (!ok) return;
+
+      try {
+        const res = await fetch("/api/account/delete", { method: "POST", credentials: "include" });
+        const data = await res.json().catch(() => ({} as any));
+        if (!res.ok || !data.ok) {
+          notify("Couldn't delete: " + (data.error || res.status));
+          return;
+        }
+        // Wipe local progress too so nothing lingers on this device.
+        [LS_SCORE, LS_LEVEL, LS_BONUS, LS_GIFT].forEach((k) => localStorage.removeItem(k));
+        await authClient.signOut().catch(() => {});
+        location.reload();
+      } catch {
+        notify("Couldn't reach the server. Please try again.");
+      }
     });
     return;
   }
@@ -231,4 +251,35 @@ function wireSheet(sheet: HTMLElement, isUser: boolean) {
     const { error } = await authClient.signIn.magicLink({ email, callbackURL: "/" });
     if (msg) msg.textContent = error ? "Something went wrong — try again." : "Check your inbox ✉️";
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* In-app confirm + notify (native confirm/alert are unreliable in PWA)*/
+/* ------------------------------------------------------------------ */
+function confirmDialog(message: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const wrap = document.createElement("div");
+    wrap.className = "account-sheet";        // reuse the dim backdrop styling
+    wrap.style.zIndex = "70";
+    wrap.innerHTML = `
+      <div class="acc-card">
+        <p class="acc-note" style="font-size:15px;margin-bottom:16px">${message}</p>
+        <button class="acc-btn acc-danger" id="cf-yes" type="button">Delete</button>
+        <button class="acc-btn acc-ghost"  id="cf-no"  type="button">Cancel</button>
+      </div>`;
+    document.body.appendChild(wrap);
+    const done = (v: boolean) => { wrap.remove(); resolve(v); };
+    wrap.querySelector("#cf-yes")?.addEventListener("click", () => done(true));
+    wrap.querySelector("#cf-no")?.addEventListener("click", () => done(false));
+    wrap.addEventListener("click", (e) => { if (e.target === wrap) done(false); });
+  });
+}
+
+function notify(text: string) {
+  const t = document.createElement("div");
+  t.className = "sw-toast info show";        // reuse toast styling if present
+  t.style.zIndex = "90";
+  t.innerHTML = `<span class="sw-toast-msg">${text}</span>`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2800);
 }
