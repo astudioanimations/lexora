@@ -11,6 +11,7 @@ import { applyDailyBackground } from "./ui/daily-bg";
 import { initAccountUI, schedulePush } from "./ui/account";
 import { offerRewardedTopUp } from "./ads/ads";
 import { installBestRewardedProvider } from "./ads/admob-provider";
+import { initSWUpdate } from "./ui/sw-update";
 
 applyDailyBackground();   // top-level; sets --lx-bg before first paint
 
@@ -236,5 +237,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
   installBestRewardedProvider();   // AdMob inside TWA; no-op (keeps mock) elsewhere
+  initSWUpdate(); // ← add this
   boot();
 });

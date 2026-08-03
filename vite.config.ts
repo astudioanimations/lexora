@@ -6,7 +6,10 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
   plugins: [
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt": don't silently swap the SW — surface an in-app "Update"
+      // toast (src/ui/sw-update.ts) so fresh content lands on one tap instead
+      // of the old "stale until hard refresh" behaviour of autoUpdate.
+      registerType: "prompt",
       includeAssets: ["icons/*.png", "level-pack.json", "dictionary.txt"],
       manifest: false, // we ship our own public/manifest.webmanifest
       workbox: {
