@@ -10,6 +10,7 @@ import { celebrateLevel } from "./ui/celebration";
 import { applyDailyBackground } from "./ui/daily-bg";
 import { initAccountUI, schedulePush } from "./ui/account";
 import { offerRewardedTopUp } from "./ads/ads";
+import { installBestRewardedProvider } from "./ads/admob-provider";
 
 applyDailyBackground();   // top-level; sets --lx-bg before first paint
 
@@ -17,10 +18,17 @@ const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)
 
 // ---- SCORING (tunable) -----------------------------------------------------
 const SCORE = {
-  perGridLetter: 10,   // grid word = 10 × its letters
-  bonusWord:     25,   // each new bonus word
-  hintCost:      75,   // deducted per hint; blocked if unaffordable
+  perGridLetter: 4,    // was 10
+  bonusWord:     10,   // was 25
+  hintCost:      120,  // was 75
   storeKey:      "lexora.score",
+};
+
+// ---- DAILY GIFT / NEW-PLAYER SEED (tunable) --------------------------------
+const DAILY = {
+  gift: 60,                    // points granted once per local day
+  seed: 120,                   // one-time welcome grant for brand-new players
+  key:  "lexora.lastGiftDay",  // stores YYYY-MM-DD of last claim
 };
 // ----------------------------------------------------------------------------
 
@@ -49,6 +57,9 @@ async function boot() {
     score = cloud.score;
     renderScore(false);
   });
+
+  // Daily gift runs AFTER cloud hydration so the day-key/score are up to date.
+  maybeDailyGift();
 }
 
 function clamp(n: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, n)); }
@@ -131,6 +142,30 @@ function award(pts: number) {
   schedulePush({ score, currentLevel: level?.levelNumber ?? 1, bonusWords: [] });
 }
 
+/** Grant points to the bank WITHOUT counting toward this-level points. */
+function grantPoints(pts: number, msg: string) {
+  score += pts;
+  saveScore();
+  renderScore(true);
+  schedulePush({ score, currentLevel: level?.levelNumber ?? 1, bonusWords: [] });
+  toast(msg, 2400);
+}
+
+/** One welcome gift for brand-new players, then a gift once per local day. */
+function maybeDailyGift() {
+  const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
+  const last = localStorage.getItem(DAILY.key);
+  if (last === null && score === 0) {
+    // Brand-new player, empty bank → welcome seed so they're not stuck at zero.
+    localStorage.setItem(DAILY.key, today);
+    grantPoints(DAILY.seed, `Welcome gift: +${DAILY.seed} ⭐`);
+  } else if (last !== today) {
+    // Once per local day.
+    localStorage.setItem(DAILY.key, today);
+    grantPoints(DAILY.gift, `Daily gift: +${DAILY.gift} ⭐`);
+  }
+}
+
 /** Try to spend points. Returns false (and warns) if unaffordable. */
 function spend(pts: number): boolean {
   if (score < pts) {
@@ -187,18 +222,19 @@ function toast(msg: string, ms = 1200) {
 document.addEventListener("DOMContentLoaded", () => {
   $("#shuffle").addEventListener("click", () => wheel.shuffle());
   $("#hint").addEventListener("click", () => {
-  if (score >= SCORE.hintCost) {
-    if (!spend(SCORE.hintCost)) return;
-    if (!board.revealHintLetter()) { award(SCORE.hintCost); toast("No letters left to hint"); }
-    return;
-  }
-  // Not enough points → offer a rewarded ad instead of a dead end.
-  offerRewardedTopUp({
-    reward: SCORE.hintCost,
-    reason: "Not enough points for a hint",
-    toast,
-    onReward: (pts) => award(pts),
+    if (score >= SCORE.hintCost) {
+      if (!spend(SCORE.hintCost)) return;
+      if (!board.revealHintLetter()) { award(SCORE.hintCost); toast("No letters left to hint"); }
+      return;
+    }
+    // Not enough points → offer a rewarded ad instead of a dead end.
+    offerRewardedTopUp({
+      reward: SCORE.hintCost,
+      reason: "Not enough points for a hint",
+      toast,
+      onReward: (pts) => award(pts),
+    });
   });
-});
+  installBestRewardedProvider();   // AdMob inside TWA; no-op (keeps mock) elsewhere
   boot();
 });
