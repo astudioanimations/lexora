@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "dev.Lexora.twa",
+      "package_name": "app.wordhaus.lexora",
       "sha256_cert_fingerprints": [
-        "4F:F3:F9:C2:70:10:FE:38:48:C3:70:A2:49:FA:CA:FC:30:72:ED:FB:6F:7F:5A:D9:AE:FC:72:5A:00:DD:56:1D"
+        "A0:27:2C:F4:CD:C3:5D:DA:34:58:25:3D:13:C1:CC:6B:2D:EE:84:18:C0:FD:73:4D:2B:AF:41:44:B1:D7:36:A1"
       ]
     }
   }
