@@ -101,6 +101,14 @@ export class Board {
     }
     return false;
   }
+  
+  /** True when every letter cell on the board has been filled. */
+isComplete(): boolean {
+  for (const [, cell] of this.cells) {
+    if (!cell.classList.contains("filled")) return false;
+  }
+  return true;
+}
 
   /** Call when tearing down a level to avoid leaking observers. */
   destroy() {

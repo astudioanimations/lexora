@@ -225,8 +225,9 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#hint").addEventListener("click", () => {
     if (score >= SCORE.hintCost) {
       if (!spend(SCORE.hintCost)) return;
-      if (!board.revealHintLetter()) { award(SCORE.hintCost); toast("No letters left to hint"); }
-      return;
+      if (!board.revealHintLetter()) { award(SCORE.hintCost); toast("No letters left to hint"); return; }
+if (board.isComplete()) onComplete();   // hint filled the last cell → celebrate + advance
+return;
     }
     // Not enough points → offer a rewarded ad instead of a dead end.
     offerRewardedTopUp({
