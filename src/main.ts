@@ -31,6 +31,13 @@ const DAILY = {
   seed: 120,                   // one-time welcome grant for brand-new players
   key:  "lexora.lastGiftDay",  // stores YYYY-MM-DD of last claim
 };
+
+// ---- LEVEL PERSISTENCE -----------------------------------------------------
+// Authoritative, MONOTONIC ("furthest reached") level marker. Same key that
+// account.ts uses for cloud sync, so local + cloud always agree. Written on
+// EVERY startLevel() so a device that jumps to the cloud level and closes
+// before completing a level still remembers it on next (even offline) launch.
+const LS_LEVEL = "lexora.current";
 // ----------------------------------------------------------------------------
 
 let levels: Level[] = [];
@@ -50,7 +57,15 @@ async function boot() {
   levels = await loadLevelPack();
   ensureScoreEl();
   renderScore(false);
-  startLevel(clamp(progress.current, 1, levels.length));
+
+  // Start at the FURTHEST of: state.ts progress vs. our persisted level marker.
+  // (These can differ if a previous session jumped to a cloud level without
+  //  completing one — the marker keeps us on the furthest point regardless.)
+  const startAt = Math.max(
+    clamp(progress.current, 1, levels.length),
+    clamp(loadSavedLevel(), 1, levels.length),
+  );
+  startLevel(startAt);
 
   // Accounts + cloud score. Pulls saved progress if signed in and merges
   // (higher score/level wins — "furthest wins"). No-op when signed out.
@@ -63,7 +78,7 @@ async function boot() {
     const target = clamp(cloud.currentLevel, 1, levels.length);
     if (target > (level?.levelNumber ?? 1)) {
       progress.current = target;   // keep local progress in step
-      startLevel(target);
+      startLevel(target);          // startLevel persists LS_LEVEL + pushes cloud
     } else if (target < (level?.levelNumber ?? 1)) {
       // This device is ahead → push our level up to the cloud.
       schedulePush({ score, currentLevel: level.levelNumber, bonusWords: [] });
@@ -75,6 +90,17 @@ async function boot() {
 }
 
 function clamp(n: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, n)); }
+
+// ---- Level marker helpers (monotonic) --------------------------------------
+function loadSavedLevel(): number {
+  const v = Number(localStorage.getItem(LS_LEVEL));
+  return Number.isFinite(v) && v > 0 ? v : 1;
+}
+/** Persist the furthest level reached. Monotonic: never regresses. */
+function saveLevel(n: number) {
+  const prev = loadSavedLevel();
+  localStorage.setItem(LS_LEVEL, String(Math.max(prev, n)));
+}
 
 function startLevel(n: number) {
   level = levels.find((l) => l.levelNumber === n) ?? levels[0];
@@ -92,7 +118,9 @@ function startLevel(n: number) {
   $("#bonus-count").textContent = "0";
   toast(`${level.anchor.toUpperCase()} — find ${level.gridWords.length} words`);
 
-  // Keep the cloud's currentLevel in sync as the player advances.
+  // Persist locally (bulletproof against close-before-complete) AND keep the
+  // cloud's currentLevel in sync as the player advances.
+  saveLevel(level.levelNumber);
   schedulePush({ score, currentLevel: level.levelNumber, bonusWords: [] });
 }
 
@@ -136,7 +164,7 @@ function onComplete() {
     score: levelPoints,            // points earned THIS level (consistent w/ counter)
     bonus: round.foundBonus.size,
     onNext: () => {
-      if (next <= levels.length) startLevel(next);   // startLevel pushes the new level to cloud
+      if (next <= levels.length) startLevel(next);   // startLevel persists + pushes cloud
       else toast("You finished every level! 🎉", 4000);
     },
   });
