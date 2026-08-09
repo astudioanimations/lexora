@@ -53,10 +53,21 @@ async function boot() {
   startLevel(clamp(progress.current, 1, levels.length));
 
   // Accounts + cloud score. Pulls saved progress if signed in and merges
-  // (higher score/level wins). No-op when signed out — pure local play.
+  // (higher score/level wins — "furthest wins"). No-op when signed out.
   await initAccountUI((cloud) => {
     score = cloud.score;
     renderScore(false);
+
+    // FURTHEST-WINS level sync: if the cloud is further along than this device,
+    // jump to that level so both devices converge on the highest reached.
+    const target = clamp(cloud.currentLevel, 1, levels.length);
+    if (target > (level?.levelNumber ?? 1)) {
+      progress.current = target;   // keep local progress in step
+      startLevel(target);
+    } else if (target < (level?.levelNumber ?? 1)) {
+      // This device is ahead → push our level up to the cloud.
+      schedulePush({ score, currentLevel: level.levelNumber, bonusWords: [] });
+    }
   });
 
   // Daily gift runs AFTER cloud hydration so the day-key/score are up to date.
@@ -80,6 +91,9 @@ function startLevel(n: number) {
   updateProgressBar();
   $("#bonus-count").textContent = "0";
   toast(`${level.anchor.toUpperCase()} — find ${level.gridWords.length} words`);
+
+  // Keep the cloud's currentLevel in sync as the player advances.
+  schedulePush({ score, currentLevel: level.levelNumber, bonusWords: [] });
 }
 
 function onSubmit(raw: string) {
@@ -122,7 +136,7 @@ function onComplete() {
     score: levelPoints,            // points earned THIS level (consistent w/ counter)
     bonus: round.foundBonus.size,
     onNext: () => {
-      if (next <= levels.length) startLevel(next);
+      if (next <= levels.length) startLevel(next);   // startLevel pushes the new level to cloud
       else toast("You finished every level! 🎉", 4000);
     },
   });
@@ -226,8 +240,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (score >= SCORE.hintCost) {
       if (!spend(SCORE.hintCost)) return;
       if (!board.revealHintLetter()) { award(SCORE.hintCost); toast("No letters left to hint"); return; }
-if (board.isComplete()) onComplete();   // hint filled the last cell → celebrate + advance
-return;
+      if (board.isComplete()) onComplete();   // hint filled the last cell → celebrate + advance
+      return;
     }
     // Not enough points → offer a rewarded ad instead of a dead end.
     offerRewardedTopUp({
@@ -238,6 +252,6 @@ return;
     });
   });
   installBestRewardedProvider();   // AdMob inside TWA; no-op (keeps mock) elsewhere
-  initSWUpdate(); // ← add this
+  initSWUpdate();
   boot();
 });
