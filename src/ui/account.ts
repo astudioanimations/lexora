@@ -4,7 +4,8 @@
  *
  *  - Signed OUT: header shows a "Sign in" text pill.
  *  - Signed IN:  header shows the avatar initial; tapping shows the email.
- *  - Sheet has a Privacy link (both states) + Delete my data (signed in).
+ *  - Sheet has a Privacy link (both states) + Delete my data (signed in)
+ *    + a "Buy me a coffee" support link (both states).
  *  - Reactive refresh (focus / visibility / retry) so the avatar updates
  *    without a hard refresh after the OAuth or magic-link callback.
  *  - Local-first: all works signed-out via localStorage; cloud is additive.
@@ -16,6 +17,7 @@ const LS_LEVEL = "lexora.current";
 const LS_BONUS = "lexora.bonusWords";
 const LS_GIFT  = "lexora.lastGiftDay";
 const PRIVACY_URL = "/privacy.html";
+const COFFEE_URL = "https://buymeacoffee.com/astudioanimations";
 
 type LocalProgress = { score: number; currentLevel: number; bonusWords: string[] };
 
@@ -178,6 +180,7 @@ function openSheet() {
           <p class="acc-email">Signed in as <strong>${user.email ?? ""}</strong>.</p>
           <p class="acc-note">Your score syncs across your devices. ☁️</p>
           <button class="acc-btn acc-ghost" id="acc-signout">Sign out</button>
+          <a class="acc-btn acc-coffee" href="${COFFEE_URL}" target="_blank" rel="noopener">☕ Buy me a coffee</a>
           <div class="acc-foot">
             <a class="acc-link" href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a>
             <button class="acc-link danger" id="acc-delete" type="button">Delete my data</button>
@@ -193,6 +196,7 @@ function openSheet() {
                  placeholder="you@example.com" autocomplete="email" />
           <button class="acc-btn acc-primary" id="acc-magic">Email me a sign-in link</button>
           <p class="acc-msg" id="acc-msg"></p>
+          <a class="acc-btn acc-coffee" href="${COFFEE_URL}" target="_blank" rel="noopener">☕ Buy me a coffee</a>
           <div class="acc-foot center">
             <a class="acc-link" href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a>
           </div>

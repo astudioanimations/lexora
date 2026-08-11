@@ -486,3 +486,18 @@ header {
 
 /* Offline-ready info variant (no buttons) */
 .sw-toast.info { padding: 10px 16px; }
+
+/* Buy me a coffee button in the account sheet */
+.acc-coffee {
+  display: block;
+  margin-top: 8px;
+  background: #FFDD00;          /* Buy Me a Coffee signature yellow */
+  color: #0E1729;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 800;
+  font-size: 15px;
+}
+.acc-coffee:active { transform: translateY(1px) scale(0.99); }
