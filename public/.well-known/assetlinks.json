@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "app.wordhaus.lexora",
       "sha256_cert_fingerprints": [
-        "A0:27:2C:F4:CD:C3:5D:DA:34:58:25:3D:13:C1:CC:6B:2D:EE:84:18:C0:FD:73:4D:2B:AF:41:44:B1:D7:36:A1"
+        "A0:27:2C:F4:CD:C3:5D:DA:34:58:25:3D:13:C1:CC:6B:2D:EE:84:18:C0:FD:73:4D:2B:AF:41:44:B1:D7:36:A1",
+        "4A:3C:C4:4C:8A:31:E9:B5:80:F9:F0:98:B2:B3:A4:5D:73:D5:5F:AD:05:92:5D:FB:10:C3:E6:AB:F1:6C:D2:CC"
       ]
     }
   }
