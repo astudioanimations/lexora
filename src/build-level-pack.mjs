@@ -7,26 +7,16 @@ console.log = () => {}; // silence library's internal debug chatter
 // 1. Word source: frequency list + real dictionary + blocklists
 // ============================================================
 const freqRaw = fs.readFileSync("data/en_50k.txt", "utf8").split("\n").filter(Boolean);
+
 const realWords = new Set(
   fs.readFileSync("node_modules/word-list/words.txt", "utf8").split("\n").map((w) => w.trim().toLowerCase()).filter(Boolean)
 );
+
 const profanity = new Set(
   fs.readFileSync("data/profanity.txt", "utf8").split("\n").map((w) => w.trim().toLowerCase()).filter((w) => w && !w.includes(" "))
 );
 
 // ---- Names blocklist (GENERATION-TIME filter) ---------------------------------
-// Applied inside isCleanWord(), so a blocked name is never eligible as an
-// anchor/grid/bonus word. Because it filters BEFORE layout, it can NEVER break a
-// crossword — unlike subtracting names from a finished pack (which was shown to
-// over-filter and orphan grid words). The only cost of over-blocking here is
-// losing a token that is both a name and a common word (e.g. rose, grace); for
-// v1 that trade is fine.
-//
-// v1.1 changes vs. the original list:
-//   * Added the 4 confirmed leaks: eric, vera, noah, han (were missing).
-//   * Added a focused set of name-dominant tokens.
-//   * Made it loadable from data/names.txt so a real dataset (e.g. SSA + ONS
-//     given names, lowercased) can be dropped in without editing this file.
 const INLINE_NAMES = `
 ali ana anna anne ben bree cal dan dave don eli emma erin eve gia hank hong ivan jack
 jake jan jen joe jon josh kate leo liam lisa liv lou lucy mark matt mel mia mike nan
@@ -35,11 +25,13 @@ eric vera noah han alec saul theo juan jose pedro oscar owen aaron ellen brian k
 jason gary larry barry jenny cindy betty kathy peggy sally harry jerry terry beth noel
 enzo otto vince walt carl fred greg keith neil dean dale glen todd chad brett cody kurt
 `;
+
 let namesSrc = INLINE_NAMES;
 try {
   namesSrc += "\n" + fs.readFileSync("data/names.txt", "utf8"); // optional real dataset
   console.error("Loaded additional names from data/names.txt");
 } catch { /* optional file — inline list is fine on its own */ }
+
 const NAMES = new Set(namesSrc.trim().split(/\s+/).map((w) => w.toLowerCase()).filter(Boolean));
 
 // Interjections/fillers that legitimately appear in broad dictionaries but make poor
@@ -68,6 +60,7 @@ function letterCounts(word) {
   for (const ch of word) c[ch] = (c[ch] || 0) + 1;
   return c;
 }
+
 const dictWithBags = dictOrdered.map((w, i) => ({ word: w, bag: letterCounts(w), rank: i }));
 
 function isSubBag(wordBag, containerBag) {
@@ -76,18 +69,15 @@ function isSubBag(wordBag, containerBag) {
 }
 
 // ============================================================
-// 2. Difficulty tiers — early levels common/short, later rarer/longer
-//    v1.1: scaled to 300 launch levels (was 170 = 50/60/60).
-//    Rank-window upper bounds widened modestly to keep comfortable candidate
-//    headroom at the higher level counts; low-end (the tier "floor") preserved.
+// 2. Difficulty tiers — 6-tier curve (300 levels)
 // ============================================================
 const TIERS = [
-  { name: "intro",  anchorLen: [6, 6], rankWindow: [100, 1200],  poolSize: 6,  levels: 20 },
-  { name: "easy",   anchorLen: [6, 6], rankWindow: [150, 2200],  poolSize: 8,  levels: 40 },
-  { name: "rising", anchorLen: [6, 7], rankWindow: [500, 3500],  poolSize: 10, levels: 55 },
-  { name: "medium", anchorLen: [7, 7], rankWindow: [900, 5000],  poolSize: 11, levels: 65 },
-  { name: "hard",   anchorLen: [7, 8], rankWindow: [2000, 8000], poolSize: 13, levels: 60 },
-  { name: "expert", anchorLen: [8, 8], rankWindow: [3000, 12000],poolSize: 14, levels: 60 },
+  { name: "intro",  anchorLen: [6, 6], rankWindow: [100, 1200],   poolSize: 6,  levels: 20 },
+  { name: "easy",   anchorLen: [6, 6], rankWindow: [150, 2200],   poolSize: 8,  levels: 40 },
+  { name: "rising", anchorLen: [6, 7], rankWindow: [500, 3500],   poolSize: 10, levels: 55 },
+  { name: "medium", anchorLen: [7, 7], rankWindow: [900, 5000],   poolSize: 11, levels: 65 },
+  { name: "hard",   anchorLen: [7, 8], rankWindow: [2000, 8000],  poolSize: 13, levels: 60 },
+  { name: "expert", anchorLen: [8, 8], rankWindow: [3000, 12000], poolSize: 14, levels: 60 },
 ];
 
 const commonPool = dictWithBags.slice(0, 12000); // matching pool: common enough to be fair grid words
@@ -147,8 +137,6 @@ function trimLayout(layout) {
 
 // ============================================================
 // 4. Generate-many-keep-best: try a few input-order permutations per anchor
-//    (the generator is deterministic per input order, but order-sensitive —
-//    confirmed empirically before writing this).
 // ============================================================
 function shuffled(arr, seed) {
   const a = [...arr];
@@ -166,6 +154,7 @@ function bestLayoutForAnchor(anchor, poolSize, attempts = 4) {
   if (matches.length < Math.max(4, poolSize - 4)) return null; // not enough derivable words
   const gridWordsFull = [anchor, ...matches].slice(0, poolSize);
   const bonusWords = matches.filter((m) => !gridWordsFull.includes(m));
+
   let best = null;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const order = attempt === 0 ? gridWordsFull : shuffled(gridWordsFull, attempt * 7919 + gridWordsFull.length);
@@ -182,7 +171,35 @@ function bestLayoutForAnchor(anchor, poolSize, attempts = 4) {
 }
 
 // ============================================================
-// 5. Build the level pack, tier by tier
+// 4b. Repetition control
+//     Grid words (not just anchors) were repeating across levels because common
+//     short words (eat, ate, ten, gone...) derive from MANY anchors. We keep a
+//     sliding window of grid words from the last N levels and prefer anchors
+//     whose grid words overlap little with that window. A two-pass fallback
+//     guarantees each tier still hits its target level count.
+// ============================================================
+const RECENT_WINDOW_LEVELS = 10;  // how many recent levels count as "recent"
+const MAX_OVERLAP_RATIO   = 0.30; // skip anchor if >30% of its grid words were recently used
+const recentQueue = [];           // array of Sets (one per recent level)
+
+function recentWordSet() {
+  const s = new Set();
+  for (const levelSet of recentQueue) for (const w of levelSet) s.add(w);
+  return s;
+}
+function overlapRatio(gridWords) {
+  const recent = recentWordSet();
+  if (gridWords.length === 0) return 0;
+  const hits = gridWords.filter((w) => recent.has(w)).length;
+  return hits / gridWords.length;
+}
+function recordLevelWords(gridWords) {
+  recentQueue.push(new Set(gridWords));
+  while (recentQueue.length > RECENT_WINDOW_LEVELS) recentQueue.shift();
+}
+
+// ============================================================
+// 5. Build the level pack, tier by tier (repetition-aware)
 // ============================================================
 const levelPack = [];
 const usedAnchors = new Set();
@@ -193,18 +210,46 @@ for (const tier of TIERS) {
     (d) => d.word.length >= tier.anchorLen[0] && d.word.length <= tier.anchorLen[1] &&
            d.rank >= tier.rankWindow[0] && d.rank <= tier.rankWindow[1] && !usedAnchors.has(d.word)
   );
-  let produced = 0, scanned = 0;
+
+  let produced = 0, scanned = 0, skippedForRepetition = 0;
+  const stashed = []; // valid levels we skipped for repetition, kept as fallback
+
+  // Pass 1: greedily take low-overlap anchors; stash high-overlap ones.
   for (const anchor of candidates) {
     if (produced >= tier.levels) break;
     scanned++;
     const lvl = bestLayoutForAnchor(anchor, tier.poolSize);
     if (!lvl) continue;
+
+    const ov = overlapRatio(lvl.gridWords);
+    if (ov > MAX_OVERLAP_RATIO) {
+      stashed.push({ anchor, lvl, ov }); // too repetitive right now — keep as fallback
+      skippedForRepetition++;
+      continue;
+    }
+
     usedAnchors.add(anchor.word);
     levelPack.push({ tier: tier.name, ...lvl });
+    recordLevelWords(lvl.gridWords);
     produced++;
   }
-  tierStats.push({ tier: tier.name, target: tier.levels, produced, scanned, candidatePoolSize: candidates.length });
-  console.error(`Tier ${tier.name}: produced ${produced}/${tier.levels} (scanned ${scanned}/${candidates.length} candidates)`);
+
+  // Pass 2 (fallback): if we didn't hit the target, fill from stashed anchors,
+  // least-repetitive first, so we still produce the full count.
+  if (produced < tier.levels) {
+    stashed.sort((a, b) => a.ov - b.ov);
+    for (const { anchor, lvl } of stashed) {
+      if (produced >= tier.levels) break;
+      if (usedAnchors.has(anchor.word)) continue;
+      usedAnchors.add(anchor.word);
+      levelPack.push({ tier: tier.name, ...lvl });
+      recordLevelWords(lvl.gridWords);
+      produced++;
+    }
+  }
+
+  tierStats.push({ tier: tier.name, target: tier.levels, produced, scanned, skippedForRepetition, candidatePoolSize: candidates.length });
+  console.error(`Tier ${tier.name}: produced ${produced}/${tier.levels} (scanned ${scanned}/${candidates.length}, skipped-for-repetition ${skippedForRepetition})`);
 }
 
 levelPack.forEach((lvl, i) => { lvl.levelNumber = i + 1; });
@@ -212,5 +257,6 @@ levelPack.forEach((lvl, i) => { lvl.levelNumber = i + 1; });
 fs.mkdirSync("output", { recursive: true });
 fs.writeFileSync("output/level-pack.json", JSON.stringify(levelPack, null, 2));
 fs.writeFileSync("output/tier-stats.json", JSON.stringify(tierStats, null, 2));
+
 console.error(`\nTotal levels produced: ${levelPack.length}`);
 console.error("Wrote output/level-pack.json and output/tier-stats.json");
