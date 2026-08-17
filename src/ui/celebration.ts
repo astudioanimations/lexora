@@ -1,24 +1,18 @@
 /**
- * Lexora — Level-complete celebration (confetti + card)
+ * Lexora — Level-complete + Chapter-complete celebration (confetti + card)
  * Self-contained, zero-dependency. Cosmetic only.
  *
- * HOW TO USE
- *   1. Save as:  src/ui/celebration.ts
- *   2. In src/main.ts, import it:
- *        import { celebrateLevel } from "./ui/celebration";
- *   3. Where you already detect a finished level (isLevelComplete === true),
- *      call it, passing an onNext callback that advances to the next level:
- *        if (isLevelComplete(round)) {
- *          celebrateLevel({
- *            level: progress.current,        // level number to show
- *            score: computeScore(round),     // optional score to show
- *            onNext: () => startLevel(next), // your existing "next level" fn
- *          });
- *        }
- *   4. Styling for the card + confetti lives in theme.css (v3).
+ * Save as:  src/ui/celebration.ts
  *
- * The overlay injects itself into <body>, traps nothing, and cleans up
- * fully when dismissed. Respects prefers-reduced-motion (skips confetti).
+ * Level complete:
+ *   celebrateLevel({ level, score, bonus, onNext });
+ *
+ * Chapter complete (last level of a chapter): pass chapterName/emoji/bonus to
+ * render the bigger "Chapter Complete" card with extra confetti:
+ *   celebrateLevel({ level, score, bonus, chapterName: "Dawn",
+ *                    chapterEmoji: "🌅", chapterBonus: 200, onNext });
+ *
+ * Styling lives in theme.css. Respects prefers-reduced-motion (skips confetti).
  */
 
 interface CelebrateOpts {
@@ -26,27 +20,47 @@ interface CelebrateOpts {
   score?: number;
   bonus?: number;
   onNext?: () => void;
+  // Chapter-complete extras (optional):
+  chapterName?: string;
+  chapterEmoji?: string;
+  chapterBonus?: number;
 }
 
 const COLORS = ["#E4A853", "#F2C078", "#5B8A72", "#F4EDE4", "#2C3F63"];
 
 export function celebrateLevel(opts: CelebrateOpts = {}): void {
   const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const isChapter = !!opts.chapterName;
 
   // ---- Overlay + card -------------------------------------------------
   const overlay = document.createElement("div");
   overlay.className = "lx-celebrate";
-  overlay.innerHTML = `
-    <div class="lx-cel-card" role="dialog" aria-live="polite">
-      <div class="lx-cel-badge">✦</div>
-      <h2 class="lx-cel-title">Level Complete!</h2>
-      ${opts.level != null ? `<p class="lx-cel-sub">Level ${opts.level} cleared</p>` : ""}
-      <div class="lx-cel-stats">
-        ${opts.score != null ? `<span class="lx-cel-chip">Score ${opts.score}</span>` : ""}
-        ${opts.bonus != null ? `<span class="lx-cel-chip">Bonus ${opts.bonus}</span>` : ""}
-      </div>
-      <button class="lx-cel-next" type="button">Next Level →</button>
-    </div>`;
+
+  const cardInner = isChapter
+    ? `
+      <div class="lx-cel-card lx-cel-chapter" role="dialog" aria-live="polite">
+        <div class="lx-cel-badge lx-cel-badge-lg">${opts.chapterEmoji ?? "✦"}</div>
+        <p class="lx-cel-kicker">Chapter Complete</p>
+        <h2 class="lx-cel-title">${opts.chapterName}</h2>
+        <div class="lx-cel-stats">
+          ${opts.score != null ? `<span class="lx-cel-chip">Level +${opts.score}</span>` : ""}
+          ${opts.chapterBonus != null ? `<span class="lx-cel-chip lx-cel-chip-gold">Chapter +${opts.chapterBonus} ⭐</span>` : ""}
+        </div>
+        <button class="lx-cel-next" type="button">Continue →</button>
+      </div>`
+    : `
+      <div class="lx-cel-card" role="dialog" aria-live="polite">
+        <div class="lx-cel-badge">✦</div>
+        <h2 class="lx-cel-title">Level Complete!</h2>
+        ${opts.level != null ? `<p class="lx-cel-sub">Level ${opts.level} cleared</p>` : ""}
+        <div class="lx-cel-stats">
+          ${opts.score != null ? `<span class="lx-cel-chip">Score ${opts.score}</span>` : ""}
+          ${opts.bonus != null ? `<span class="lx-cel-chip">Bonus ${opts.bonus}</span>` : ""}
+        </div>
+        <button class="lx-cel-next" type="button">Next Level →</button>
+      </div>`;
+
+  overlay.innerHTML = cardInner;
   document.body.appendChild(overlay);
   // force reflow so the CSS entrance transition fires
   void overlay.offsetWidth;
@@ -68,8 +82,8 @@ export function celebrateLevel(opts: CelebrateOpts = {}): void {
     if (e.target === overlay) { cleanup(); opts.onNext?.(); }
   });
 
-  // haptic celebration tick
-  if ("vibrate" in navigator) navigator.vibrate?.([12, 40, 12]);
+  // haptic celebration tick (a little stronger for a chapter finale)
+  if ("vibrate" in navigator) navigator.vibrate?.(isChapter ? [15, 50, 15, 50, 15] : [12, 40, 12]);
 
   if (reduced) return; // no confetti for reduced-motion users
 
@@ -110,8 +124,10 @@ export function celebrateLevel(opts: CelebrateOpts = {}): void {
       });
     }
   };
-  spawn(120);
-  setTimeout(() => spawn(80), 220); // second burst
+  // Bigger burst for a chapter finale.
+  spawn(isChapter ? 200 : 120);
+  setTimeout(() => spawn(isChapter ? 140 : 80), 220); // second burst
+  if (isChapter) setTimeout(() => spawn(120), 500);   // third burst for chapters
 
   let raf = 0;
   let running = true;

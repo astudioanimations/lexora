@@ -7,13 +7,11 @@ import { loadProgress, markCleared, loadLevelPack, type Progress } from "./game/
 import "./style.css";
 import "./theme.css"; // layers on top
 import { celebrateLevel } from "./ui/celebration";
-import { applyDailyBackground } from "./ui/daily-bg";
+import { chapterFor, isChapterEnd, applyChapterBackground } from "./game/chapters";
 import { initAccountUI, schedulePush } from "./ui/account";
 import { offerRewardedTopUp } from "./ads/ads";
 import { installBestRewardedProvider } from "./ads/admob-provider";
 import { initSWUpdate } from "./ui/sw-update";
-
-applyDailyBackground();   // top-level; sets --lx-bg before first paint
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
@@ -22,6 +20,7 @@ const SCORE = {
   perGridLetter: 4,    // was 10
   bonusWord:     10,   // was 25
   hintCost:      120,  // was 75
+  chapterBonus:  200,  // awarded when a whole chapter is completed
   storeKey:      "lexora.score",
 };
 
@@ -106,8 +105,13 @@ function startLevel(n: number) {
   level = levels.find((l) => l.levelNumber === n) ?? levels[0];
   round = newRound();
   levelPoints = 0;
-  // Level X / Total
-  $("#level-num").textContent = `Level ${level.levelNumber} / ${levels.length}`;
+
+  // Chapter drives the background + header label (replaces daily rotation).
+  const ch = chapterFor(level.levelNumber);
+  applyChapterBackground(level.levelNumber);
+
+  // Header: "🌅 Dawn · Level 8 / 300"
+  $("#level-num").textContent = `${ch.emoji} ${ch.name} · Level ${level.levelNumber} / ${levels.length}`;
   $("#tier").textContent = level.tier;
   $("#tier").className = `tier ${level.tier}`;
   board = new Board($("#board-wrap"), level);
@@ -158,15 +162,33 @@ function onComplete() {
 
   const finishedNumber = level.levelNumber;
   const next = finishedNumber + 1;
+  const advance = () => {
+    if (next <= levels.length) startLevel(next);   // startLevel persists + pushes cloud
+    else toast("You finished every level! 🎉", 4000);
+  };
 
+  // Chapter finale? Give a special celebration + a chapter bonus.
+  if (isChapterEnd(finishedNumber)) {
+    const ch = chapterFor(finishedNumber);
+    grantPoints(SCORE.chapterBonus, ""); // add bonus silently (card shows it)
+    celebrateLevel({
+      level: finishedNumber,
+      score: levelPoints,
+      bonus: round.foundBonus.size,
+      chapterName: ch.name,
+      chapterEmoji: ch.emoji,
+      chapterBonus: SCORE.chapterBonus,
+      onNext: advance,
+    });
+    return;
+  }
+
+  // Normal level-complete celebration.
   celebrateLevel({
     level: finishedNumber,
     score: levelPoints,            // points earned THIS level (consistent w/ counter)
     bonus: round.foundBonus.size,
-    onNext: () => {
-      if (next <= levels.length) startLevel(next);   // startLevel persists + pushes cloud
-      else toast("You finished every level! 🎉", 4000);
-    },
+    onNext: advance,
   });
 }
 
@@ -185,13 +207,14 @@ function award(pts: number) {
   schedulePush({ score, currentLevel: level?.levelNumber ?? 1, bonusWords: [] });
 }
 
-/** Grant points to the bank WITHOUT counting toward this-level points. */
+/** Grant points to the bank WITHOUT counting toward this-level points.
+ *  Pass an empty msg to skip the toast (e.g. when a card already shows it). */
 function grantPoints(pts: number, msg: string) {
   score += pts;
   saveScore();
   renderScore(true);
   schedulePush({ score, currentLevel: level?.levelNumber ?? 1, bonusWords: [] });
-  toast(msg, 2400);
+  if (msg) toast(msg, 2400);
 }
 
 /** One welcome gift for brand-new players, then a gift once per local day. */

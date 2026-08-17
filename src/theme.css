@@ -501,3 +501,16 @@ header {
   font-size: 15px;
 }
 .acc-coffee:active { transform: translateY(1px) scale(0.99); }
+
+/* Chapter-complete celebration variant */
+.lx-cel-chapter { padding-top: 26px; }
+.lx-cel-badge-lg { width: 72px; height: 72px; font-size: 34px; }
+.lx-cel-kicker {
+  margin: 8px 0 0; font-size: 12px; font-weight: 800;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--lx-sage, #5B8A72);
+}
+.lx-cel-chapter .lx-cel-title { font-size: 28px; }
+.lx-cel-chip-gold {
+  background: linear-gradient(180deg, var(--lx-amber-glow, #F2C078), var(--lx-amber, #E4A853));
+  color: var(--lx-indigo-deep, #0E1729);
+}
