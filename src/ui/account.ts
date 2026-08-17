@@ -2,13 +2,13 @@
  * Lexora — account button + cloud score sync.
  * Save as:  src/ui/account.ts
  *
- *  - Signed OUT: header shows a "Sign in" text pill.
+ *  - Signed OUT: header shows a "Sign in" text pill; device is a fresh guest.
  *  - Signed IN:  header shows the avatar initial; tapping shows the email.
- *  - Sheet has a Privacy link (both states) + Delete my data (signed in)
- *    + a "Buy me a coffee" support link (both states).
+ *  - Sign OUT clears LOCAL progress (fair on shared devices) — your real
+ *    progress is safe in the cloud and restores when you sign back in.
+ *  - Sheet has Privacy + Delete my data + Buy me a coffee.
  *  - Reactive refresh (focus / visibility / retry) so the avatar updates
  *    without a hard refresh after the OAuth or magic-link callback.
- *  - Local-first: all works signed-out via localStorage; cloud is additive.
  */
 import { authClient } from "../auth/client";
 
@@ -24,6 +24,11 @@ type LocalProgress = { score: number; currentLevel: number; bonusWords: string[]
 let signedIn = false;
 let hydrated = false;
 let onCloud: ((p: LocalProgress) => void) | undefined;
+
+/** Clear all local progress so the device returns to a fresh guest state. */
+function clearLocalProgress() {
+  [LS_SCORE, LS_LEVEL, LS_BONUS, LS_GIFT].forEach((k) => localStorage.removeItem(k));
+}
 
 /* ------------------------------------------------------------------ */
 /* Public API                                                          */
@@ -212,14 +217,14 @@ function openSheet() {
 function wireSheet(sheet: HTMLElement, isUser: boolean) {
   if (isUser) {
     sheet.querySelector("#acc-signout")?.addEventListener("click", async () => {
+      // Sign out returns the device to a fresh guest state. Cloud save is
+      // untouched and restores on next sign-in — this keeps shared devices fair.
       await authClient.signOut().catch(() => {});
+      clearLocalProgress();
       location.reload();
     });
 
     sheet.querySelector("#acc-delete")?.addEventListener("click", async () => {
-      // NOTE: native confirm() is unreliable in installed PWAs (standalone mode)
-      // — it can return false instantly, so the request never fires. Use an
-      // in-app dialog instead.
       const ok = await confirmDialog(
         "Delete your account and cloud-saved progress? This cannot be undone."
       );
@@ -232,8 +237,7 @@ function wireSheet(sheet: HTMLElement, isUser: boolean) {
           notify("Couldn't delete: " + (data.error || res.status));
           return;
         }
-        // Wipe local progress too so nothing lingers on this device.
-        [LS_SCORE, LS_LEVEL, LS_BONUS, LS_GIFT].forEach((k) => localStorage.removeItem(k));
+        clearLocalProgress();
         await authClient.signOut().catch(() => {});
         location.reload();
       } catch {

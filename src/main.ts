@@ -32,10 +32,6 @@ const DAILY = {
 };
 
 // ---- LEVEL PERSISTENCE -----------------------------------------------------
-// Authoritative, MONOTONIC ("furthest reached") level marker. Same key that
-// account.ts uses for cloud sync, so local + cloud always agree. Written on
-// EVERY startLevel() so a device that jumps to the cloud level and closes
-// before completing a level still remembers it on next (even offline) launch.
 const LS_LEVEL = "lexora.current";
 // ----------------------------------------------------------------------------
 
@@ -55,11 +51,10 @@ async function boot() {
   await loadDictionary().catch(() => {});
   levels = await loadLevelPack();
   ensureScoreEl();
+  ensureChapterStrip();   // move chapter/level/tier onto their own row
   renderScore(false);
 
   // Start at the FURTHEST of: state.ts progress vs. our persisted level marker.
-  // (These can differ if a previous session jumped to a cloud level without
-  //  completing one — the marker keeps us on the furthest point regardless.)
   const startAt = Math.max(
     clamp(progress.current, 1, levels.length),
     clamp(loadSavedLevel(), 1, levels.length),
@@ -95,10 +90,25 @@ function loadSavedLevel(): number {
   const v = Number(localStorage.getItem(LS_LEVEL));
   return Number.isFinite(v) && v > 0 ? v : 1;
 }
-/** Persist the furthest level reached. Monotonic: never regresses. */
 function saveLevel(n: number) {
   const prev = loadSavedLevel();
   localStorage.setItem(LS_LEVEL, String(Math.max(prev, n)));
+}
+
+/** Move #level-num and #tier out of the crowded header into their own row so
+ *  the brand + score never get truncated. Selectors still resolve afterwards. */
+function ensureChapterStrip() {
+  if (document.getElementById("chapter-strip")) return;
+  const header = document.querySelector("header");
+  if (!header) return;
+  const strip = document.createElement("div");
+  strip.id = "chapter-strip";
+  strip.className = "chapter-strip";
+  header.insertAdjacentElement("afterend", strip);
+  const levelNum = document.getElementById("level-num");
+  const tier = document.getElementById("tier");
+  if (levelNum) strip.appendChild(levelNum);
+  if (tier) strip.appendChild(tier);
 }
 
 function startLevel(n: number) {
@@ -110,7 +120,7 @@ function startLevel(n: number) {
   const ch = chapterFor(level.levelNumber);
   applyChapterBackground(level.levelNumber);
 
-  // Header: "🌅 Dawn · Level 8 / 300"
+  // Chapter strip: "🌆 Dusk · Level 51 / 300"
   $("#level-num").textContent = `${ch.emoji} ${ch.name} · Level ${level.levelNumber} / ${levels.length}`;
   $("#tier").textContent = level.tier;
   $("#tier").className = `tier ${level.tier}`;
@@ -222,11 +232,9 @@ function maybeDailyGift() {
   const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
   const last = localStorage.getItem(DAILY.key);
   if (last === null && score === 0) {
-    // Brand-new player, empty bank → welcome seed so they're not stuck at zero.
     localStorage.setItem(DAILY.key, today);
     grantPoints(DAILY.seed, `Welcome gift: +${DAILY.seed} ⭐`);
   } else if (last !== today) {
-    // Once per local day.
     localStorage.setItem(DAILY.key, today);
     grantPoints(DAILY.gift, `Daily gift: +${DAILY.gift} ⭐`);
   }
@@ -252,7 +260,6 @@ function ensureScoreEl() {
   chip.id = "score";
   chip.className = "chip score-chip";
   chip.setAttribute("aria-live", "polite");
-  // Insert into the header, before the level number if present.
   const header = document.querySelector("header");
   const levelNum = document.getElementById("level-num");
   if (header && levelNum) header.insertBefore(chip, levelNum);

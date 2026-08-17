@@ -514,3 +514,21 @@ header {
   background: linear-gradient(180deg, var(--lx-amber-glow, #F2C078), var(--lx-amber, #E4A853));
   color: var(--lx-indigo-deep, #0E1729);
 }
+
+/* Chapter strip — its own row so brand + score never truncate */
+.chapter-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 2px 12px 4px;
+  flex-wrap: nowrap;
+}
+#level-num {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: 0 !important;   /* override the old margin-left:auto */
+}
