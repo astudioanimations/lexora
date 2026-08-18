@@ -12,6 +12,7 @@ import { initAccountUI, schedulePush } from "./ui/account";
 import { offerRewardedTopUp } from "./ads/ads";
 import { installBestRewardedProvider } from "./ads/admob-provider";
 import { initSWUpdate } from "./ui/sw-update";
+import { initAudio } from "./audio/audio";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
@@ -311,5 +312,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   installBestRewardedProvider();   // AdMob inside TWA; no-op (keeps mock) elsewhere
   initSWUpdate();
+  initAudio();                     // background music + mute toggle (default off)
   boot();
 });
