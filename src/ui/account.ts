@@ -15,7 +15,6 @@ import { authClient } from "../auth/client";
 const LS_SCORE = "lexora.score";
 const LS_LEVEL = "lexora.current";
 const LS_BONUS = "lexora.bonusWords";
-const LS_GIFT  = "lexora.lastGiftDay";
 const PRIVACY_URL = "/privacy.html";
 const COFFEE_URL = "https://buymeacoffee.com/astudioanimations";
 
@@ -25,9 +24,18 @@ let signedIn = false;
 let hydrated = false;
 let onCloud: ((p: LocalProgress) => void) | undefined;
 
-/** Clear all local progress so the device returns to a fresh guest state. */
+/** Clear ALL local progress so the device returns to a fresh guest state.
+ *  Removes every "lexora*" localStorage key — this includes state.ts's own
+ *  progress store (whatever it's named), not just the score/level markers.
+ *  NOTE: keeps any "lexora.setting*" keys so user settings (e.g. music mute)
+ *  survive a sign-out. */
 function clearLocalProgress() {
-  [LS_SCORE, LS_LEVEL, LS_BONUS, LS_GIFT].forEach((k) => localStorage.removeItem(k));
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith("lexora") && !k.startsWith("lexora.setting")) keys.push(k);
+  }
+  keys.forEach((k) => localStorage.removeItem(k));
 }
 
 /* ------------------------------------------------------------------ */
