@@ -13,16 +13,29 @@ export default defineConfig({
       includeAssets: ["icons/*.png", "level-pack.json", "dictionary.txt"],
       manifest: false, // we ship our own public/manifest.webmanifest
       workbox: {
-        globPatterns: ["**/*.{js,css,html,png,webp,json,txt,webmanifest,mp3}"],
+        // NOTE: mp3 is intentionally NOT in globPatterns — the music file is
+        // large (~4MB) and music defaults OFF, so we don't want every user to
+        // download it on install. It's runtime-cached on first play instead.
+        globPatterns: ["**/*.{js,css,html,png,webp,json,txt,webmanifest}"],
         // Never let the SW serve the cached app-shell for auth/API routes —
         // OAuth callbacks and session/progress calls must reach the server.
         navigateFallbackDenylist: [/^\/api\//],
-        // Level pack + dictionary are static; cache-first once fetched.
         runtimeCaching: [
           {
+            // Level pack + dictionary are static; cache-first once fetched.
             urlPattern: ({ url }) => url.pathname.endsWith(".json") || url.pathname.endsWith(".txt"),
             handler: "CacheFirst",
             options: { cacheName: "Lexora-content", expiration: { maxEntries: 8 } },
+          },
+          {
+            // Music: cache-first once the user actually plays it (not on install).
+            urlPattern: ({ url }) => url.pathname.endsWith(".mp3"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "Lexora-audio",
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 60 },
+              rangeRequests: true, // let the browser seek/stream the audio
+            },
           },
         ],
       },

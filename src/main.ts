@@ -13,6 +13,7 @@ import { offerRewardedTopUp } from "./ads/ads";
 import { installBestRewardedProvider } from "./ads/admob-provider";
 import { initSWUpdate } from "./ui/sw-update";
 import { initAudio } from "./audio/audio";
+import { initChapterMap } from "./ui/chapter-map";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
@@ -61,6 +62,12 @@ async function boot() {
     clamp(loadSavedLevel(), 1, levels.length),
   );
   startLevel(startAt);
+
+  // Chapter journey map (🗺️ button). Furthest = max of marker vs current level.
+  initChapterMap({
+    getFurthest: () => Math.max(loadSavedLevel(), level?.levelNumber ?? 1),
+    onJump: (n) => startLevel(clamp(n, 1, levels.length)),
+  });
 
   // Accounts + cloud score. Pulls saved progress if signed in and merges
   // (higher score/level wins — "furthest wins"). No-op when signed out.
