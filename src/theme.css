@@ -533,20 +533,7 @@ header {
   margin-left: 0 !important;   /* override the old margin-left:auto */
 }
 
-/* Music toggle button in the header */
-.music-btn {
-  margin-left: 8px;
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  border: 1px solid var(--lx-card-brd);
-  background: var(--lx-card);
-  color: var(--lx-ink);
-  font-size: 16px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; flex: 0 0 auto; padding: 0;
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-}
-.music-btn:active { transform: scale(0.94); }
+
 
 /* Map button in header */
 .map-btn {
@@ -605,3 +592,25 @@ header {
 .cm-current { border-color: var(--lx-amber); box-shadow: 0 0 0 1px var(--lx-amber) inset; }
 .cm-current .cm-badge { color: var(--lx-amber); }
 .cm-done .cm-badge { color: var(--lx-sage, #5B8A72); }
+
+/* Settings row (music toggle) inside the account sheet */
+.acc-setting {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 4px; margin: 4px 0 8px;
+  border-bottom: 1px solid rgba(27,42,74,.1);
+}
+.acc-setting-label { font-size: 15px; font-weight: 700; color: var(--lx-indigo-deep, #0E1729); }
+
+/* iOS-style toggle switch */
+.acc-toggle {
+  position: relative; width: 46px; height: 28px; border-radius: 999px;
+  border: none; cursor: pointer; padding: 0; flex: 0 0 auto;
+  background: #cfc9bd; transition: background .2s ease;
+}
+.acc-toggle.on { background: linear-gradient(180deg, var(--lx-amber-glow,#F2C078), var(--lx-amber,#E4A853)); }
+.acc-toggle-knob {
+  position: absolute; top: 3px; left: 3px; width: 22px; height: 22px;
+  border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+}
+.acc-toggle.on .acc-toggle-knob { transform: translateX(18px); }

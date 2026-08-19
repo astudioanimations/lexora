@@ -8,7 +8,8 @@
  * - Default OFF (calm game; respects quiet/public settings). Preference is
  *   stored under "lexora.setting.music" so it survives a sign-out (account.ts
  *   deliberately keeps "lexora.setting*" keys).
- * - Injects a 🔊/🔇 toggle button into the header.
+ * - The toggle lives in the ACCOUNT SHEET (not the header). account.ts calls
+ *   isMusicOn() / toggleMusic() to render + drive the row.
  *
  * USAGE (main.ts):
  *   import { initAudio } from "./audio/audio";
@@ -36,7 +37,7 @@ function ensureAudio(): HTMLAudioElement {
   if (audio) return audio;
   audio = new Audio(TRACK_URL);
   audio.loop = true;
-  audio.preload = "auto";
+  audio.preload = "none";   // don't fetch until the user turns music on
   audio.volume = 0;
   return audio;
 }
@@ -76,44 +77,13 @@ function unlockOnce() {
   if (wantOn) void play();
 }
 
-function renderToggle() {
-  const btn = document.getElementById("music-btn");
-  if (!btn) return;
-  btn.textContent = wantOn ? "🔊" : "🔇";
-  btn.setAttribute("title", wantOn ? "Music on" : "Music off");
-  btn.setAttribute("aria-label", wantOn ? "Turn music off" : "Turn music on");
-}
-
-function toggle() {
-  wantOn = !wantOn;
-  savePref(wantOn);
-  renderToggle();
-  if (wantOn) {
-    if (started) void play(); else void play(); // play() is safe; unlock handles blocked case
-  } else {
-    pause();
-  }
-}
-
-function ensureToggleButton() {
-  if (document.getElementById("music-btn")) return;
-  const btn = document.createElement("button");
-  btn.id = "music-btn";
-  btn.className = "music-btn";
-  btn.type = "button";
-  btn.addEventListener("click", toggle);
-  // Place it in the header, before the account button if present.
-  const header = document.querySelector("header");
-  const accountBtn = document.getElementById("account-btn");
-  if (header && accountBtn) header.insertBefore(btn, accountBtn);
-  else if (header) header.appendChild(btn);
-}
+/* ------------------------------------------------------------------ */
+/* Public API (used by main.ts + account.ts)                           */
+/* ------------------------------------------------------------------ */
 
 /** Call once at startup. */
 export function initAudio() {
   wantOn = prefOn();
-  ensureToggleButton();
-  renderToggle();
 
   // Unlock playback on the very first user interaction (autoplay policy).
   const opts = { once: true, passive: true } as AddEventListenerOptions;
@@ -127,4 +97,18 @@ export function initAudio() {
     if (document.visibilityState === "hidden") { audio.pause(); }
     else if (wantOn && started) { void play(); }
   });
+}
+
+/** Current desired music state (for the account-sheet toggle rendering). */
+export function isMusicOn(): boolean {
+  return wantOn;
+}
+
+/** Toggle music on/off (persists). Returns the new state. */
+export function toggleMusic(): boolean {
+  wantOn = !wantOn;
+  savePref(wantOn);
+  if (wantOn) void play();   // play() is safe even before unlock; retries on gesture
+  else pause();
+  return wantOn;
 }
