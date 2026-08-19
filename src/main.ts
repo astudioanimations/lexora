@@ -14,6 +14,7 @@ import { installBestRewardedProvider } from "./ads/admob-provider";
 import { initSWUpdate } from "./ui/sw-update";
 import { initAudio } from "./audio/audio";
 import { initChapterMap } from "./ui/chapter-map";
+import { showBonusWords } from "./ui/bonus-popup";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
@@ -317,6 +318,12 @@ document.addEventListener("DOMContentLoaded", () => {
       onReward: (pts) => award(pts),
     });
   });
+
+  // Tap the "Bonus N" chip to see the bonus words discovered this level.
+  document.getElementById("bonus-count")?.closest(".chip")?.addEventListener("click", () => {
+    showBonusWords([...round.foundBonus]);
+  });
+
   installBestRewardedProvider();   // AdMob inside TWA; no-op (keeps mock) elsewhere
   initSWUpdate();
   initAudio();                     // background music + mute toggle (default off)
