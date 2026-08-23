@@ -5,12 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
   <meta name="theme-color" content="#1B2A4A" />
   <link rel="manifest" href="/manifest.webmanifest" />
-    
+
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
-<!-- iOS splash screens (optional but nice for installed PWA) -->
+  <!-- Google Analytics 4 (gtag.js) — Lexora Web stream. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GXQVXQSML5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-GXQVXQSML5', { send_page_view: true });
+  </script>
+
+  <!-- Google AdSense H5 Games Ads (Ad Placement API).
+       Replace ca-pub-XXXXXXXXXXXXXXXX with your Publisher ID after approval.
+       data-ad-frequency-hint keeps Lexora's calm pacing (min gap between ads).
+       NOTE: test mode is NOT set here — the loader script ignores data-ad-test.
+       For the Ad Placement API, testing is controlled via the adConfig call
+       (adBreakTest) in src/ads/h5.ts, and real ads only serve on the approved
+       live domain (not localhost). -->
+  <script async
+    data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+    data-ad-frequency-hint="90s"
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"
+    crossorigin="anonymous"></script>
+
+  <!-- iOS splash screens (optional but nice for installed PWA) -->
   <link rel="apple-touch-startup-image" href="/icons/splash-1290x2796.png" media="(device-width:430px) and (device-height:932px) and (-webkit-device-pixel-ratio:3)" />
   <link rel="apple-touch-startup-image" href="/icons/splash-1179x2556.png" media="(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3)" />
   <link rel="apple-touch-startup-image" href="/icons/splash-1170x2532.png" media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3)" />

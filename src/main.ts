@@ -15,6 +15,17 @@ import { initSWUpdate } from "./ui/sw-update";
 import { initAudio } from "./audio/audio";
 import { initChapterMap } from "./ui/chapter-map";
 import { showBonusWords } from "./ui/bonus-popup";
+// Web-native H5 Games Ads — the ad path that actually works in the TWA.
+import { initH5Ads, showInterstitial } from "./ads/h5";
+// Google Analytics 4 — typed, defensive wrapper (never touches the game loop).
+import {
+  initAnalytics,
+  trackLevelStart,
+  trackLevelComplete,
+  trackChapterComplete,
+  trackHintUsed,
+  trackReward,
+} from "./analytics/analytics";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
@@ -141,6 +152,9 @@ function startLevel(n: number) {
   $("#bonus-count").textContent = "0";
   toast(`${level.anchor.toUpperCase()} — find ${level.gridWords.length} words`);
 
+  // Analytics: level entered (GA4 recommended "level_start").
+  trackLevelStart(level.levelNumber, ch.name);
+
   // Persist locally (bulletproof against close-before-complete) AND keep the
   // cloud's currentLevel in sync as the player advances.
   saveLevel(level.levelNumber);
@@ -181,14 +195,26 @@ function onComplete() {
 
   const finishedNumber = level.levelNumber;
   const next = finishedNumber + 1;
+
+  // Analytics: level finished (GA4 recommended "level_end").
+  trackLevelComplete(finishedNumber, levelPoints, round.foundBonus.size);
+
+  // Advance to the next level. An INTERSTITIAL is shown at this natural break;
+  // the frequency hint in index.html (90s) throttles it so Lexora stays calm,
+  // and onDone always fires (immediately if the cap skipped the ad) so the
+  // game never gets stuck behind an ad that didn't show.
   const advance = () => {
-    if (next <= levels.length) startLevel(next);   // startLevel persists + pushes cloud
-    else toast("You finished every level! 🎉", 4000);
+    if (next <= levels.length) {
+      showInterstitial("level_complete", () => startLevel(next));
+    } else {
+      toast("You finished every level! 🎉", 4000);
+    }
   };
 
   // Chapter finale? Give a special celebration + a chapter bonus.
   if (isChapterEnd(finishedNumber)) {
     const ch = chapterFor(finishedNumber);
+    trackChapterComplete(ch.name, finishedNumber);   // analytics
     grantPoints(SCORE.chapterBonus, ""); // add bonus silently (card shows it)
     celebrateLevel({
       level: finishedNumber,
@@ -243,9 +269,11 @@ function maybeDailyGift() {
   if (last === null && score === 0) {
     localStorage.setItem(DAILY.key, today);
     grantPoints(DAILY.seed, `Welcome gift: +${DAILY.seed} ⭐`);
+    trackReward("welcome", DAILY.seed);   // analytics
   } else if (last !== today) {
     localStorage.setItem(DAILY.key, today);
     grantPoints(DAILY.gift, `Daily gift: +${DAILY.gift} ⭐`);
+    trackReward("daily", DAILY.gift);     // analytics
   }
 }
 
@@ -306,6 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#hint").addEventListener("click", () => {
     if (score >= SCORE.hintCost) {
       if (!spend(SCORE.hintCost)) return;
+      trackHintUsed(level?.levelNumber ?? 1, SCORE.hintCost);   // analytics
       if (!board.revealHintLetter()) { award(SCORE.hintCost); toast("No letters left to hint"); return; }
       if (board.isComplete()) onComplete();   // hint filled the last cell → celebrate + advance
       return;
@@ -324,7 +353,9 @@ document.addEventListener("DOMContentLoaded", () => {
     showBonusWords([...round.foundBonus]);
   });
 
-  installBestRewardedProvider();   // AdMob inside TWA; no-op (keeps mock) elsewhere
+  initAnalytics();                 // Google Analytics 4 (safe no-op if blocked)
+  initH5Ads(false);                // web-native H5 ads (music defaults off → sound:"off")
+  installBestRewardedProvider();   // AdMob bridge if built → else H5 web provider → else mock
   initSWUpdate();
   initAudio();                     // background music + mute toggle (default off)
   boot();
