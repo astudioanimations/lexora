@@ -1,0 +1,22 @@
+# Lexora / wordhaus.app — ads.txt
+# ---------------------------------------------------------------------------
+# Save as:  public/ads.txt   (Cloudflare Pages serves /public at the root, so
+# this becomes https://wordhaus.app/ads.txt and https://lexora.wordhaus.app/ads.txt)
+#
+# WHAT THIS IS: ads.txt (Authorized Digital Sellers) tells advertisers which
+# companies are allowed to sell your ad inventory. AdSense/H5 Games Ads requires
+# it so your impressions are recognised as legitimate.
+#
+# HOW TO FILL IT IN:
+#   1. After AdSense approval, open AdSense → Sites → (your site) → it shows a
+#      warning like "Earnings at risk — you need to fix ads.txt" with the EXACT
+#      line to add. Or go to AdSense → Account → Settings for the snippet.
+#   2. Replace pub-XXXXXXXXXXXXXXXX below with YOUR publisher ID (digits only,
+#      the part after "ca-pub-" — e.g. ca-pub-1234567890123456 → pub-1234567890123456).
+#   3. Keep the line EXACTLY as Google gives it (the last token is a fixed
+#      certification authority ID; f08c47fec0942fa0 is Google's — do not change).
+#   4. Deploy. Verify it loads at https://wordhaus.app/ads.txt (plain text).
+#   5. Google re-crawls ads.txt periodically; the warning clears within ~24-48h.
+# ---------------------------------------------------------------------------
+
+google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0

@@ -12,6 +12,11 @@
  * absent (e.g. plain browser, or the interface isn't injected), we fall back so
  * the game never breaks.
  *
+ * NOTE (important): a PLAIN TWA does NOT inject this bridge — you'd have to build
+ * a custom Kotlin wrapper for it. Until then, isAvailable() returns false and we
+ * fall back to the H5 web provider (WebRewardedProvider), which DOES serve
+ * rewarded ads inside a TWA. See installBestRewardedProvider() below.
+ *
  * ---- ANDROID SIDE (put in your TWA wrapper, Kotlin, sketch) ----
  *   class AdsBridge(private val activity: Activity) {
  *     @JavascriptInterface fun showRewarded() {
@@ -86,17 +91,26 @@ export class AdMobRewardedProvider implements RewardedProvider {
 }
 
 /**
- * Convenience: pick AdMob inside the TWA, otherwise leave the current provider
- * (mock, or a future web provider) in place. Call once at boot:
+ * Convenience: pick the BEST available rewarded provider at boot.
  *
- *   import { setRewardedProvider } from "./ads/ads";
+ * Priority:
+ *   1. AdMob native bridge  — only if you've built the Kotlin wrapper (highest eCPM).
+ *   2. H5 web provider      — works inside a plain TWA and in-browser (your case now).
+ *   3. Otherwise            — keep the existing provider (mock for local dev).
+ *
+ * Call once at boot (after initH5Ads):
+ *   import { setRewardedProvider } from "./ads";
  *   import { installBestRewardedProvider } from "./ads/admob-provider";
  *   installBestRewardedProvider();
  */
 import { setRewardedProvider } from "./ads";
+import { WebRewardedProvider } from "./h5-provider";
+
 export function installBestRewardedProvider(): void {
   if (AdMobRewardedProvider.isAvailable()) {
     setRewardedProvider(new AdMobRewardedProvider());
+  } else if (WebRewardedProvider.isAvailable()) {
+    setRewardedProvider(new WebRewardedProvider());
   }
-  // else: keep the existing provider (mock now, AppLixir/web later).
+  // else: keep the existing provider (mock during local dev without the script).
 }
