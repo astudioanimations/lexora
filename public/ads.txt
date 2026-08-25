@@ -19,4 +19,4 @@
 #   5. Google re-crawls ads.txt periodically; the warning clears within ~24-48h.
 # ---------------------------------------------------------------------------
 
-google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+google.com, pub-4125409247009864, DIRECT, f08c47fec0942fa0
