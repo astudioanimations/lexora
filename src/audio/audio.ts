@@ -5,11 +5,15 @@
  * - One looping ambient track, gentle fade in/out.
  * - Autoplay-safe: browsers block audio until the user interacts, so playback
  *   only actually starts after the first tap/click/keydown.
- * - Default OFF (calm game; respects quiet/public settings). Preference is
- *   stored under "lexora.setting.music" so it survives a sign-out (account.ts
- *   deliberately keeps "lexora.setting*" keys).
- * - The toggle lives in the ACCOUNT SHEET (not the header). account.ts calls
- *   isMusicOn() / toggleMusic() to render + drive the row.
+ * - Default ON (our track is soft + calm). Because of the autoplay policy the
+ *   sound can't literally start on page load — it starts on the FIRST user
+ *   gesture (a tap anywhere / first letter drag). This makes it *feel* on by
+ *   default without fighting the browser.
+ * - Preference is stored under "lexora.setting.music" so it survives a
+ *   sign-out (account.ts deliberately keeps "lexora.setting*" keys).
+ * - The toggle now lives on the MAIN SCREEN (header 🔊/🔇 button, see
+ *   src/ui/music-toggle.ts) AND still in the account sheet. Both use
+ *   isMusicOn() / toggleMusic(); subscribe via onMusicChange() to stay in sync.
  *
  * USAGE (main.ts):
  *   import { initAudio } from "./audio/audio";
@@ -22,12 +26,18 @@ const TARGET_VOLUME = 0.35;                  // gentle background level
 const FADE_MS = 900;
 
 let audio: HTMLAudioElement | null = null;
-let wantOn = false;          // user's desired state
+let wantOn = true;           // user's desired state (default ON)
 let started = false;         // has playback ever been unlocked by a gesture
 let fadeTimer = 0;
 
+// Listeners so every music UI (header button + account sheet) stays in sync.
+const listeners: ((on: boolean) => void)[] = [];
+function emit() { for (const fn of listeners) { try { fn(wantOn); } catch { /* ignore */ } } }
+
 function prefOn(): boolean {
-  return localStorage.getItem(SETTING_KEY) === "on"; // default OFF
+  const v = localStorage.getItem(SETTING_KEY);
+  if (v === null) return true;   // DEFAULT ON for brand-new players
+  return v === "on";
 }
 function savePref(on: boolean) {
   localStorage.setItem(SETTING_KEY, on ? "on" : "off");
@@ -78,7 +88,7 @@ function unlockOnce() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Public API (used by main.ts + account.ts)                           */
+/* Public API (used by main.ts + account.ts + music-toggle.ts)         */
 /* ------------------------------------------------------------------ */
 
 /** Call once at startup. */
@@ -97,9 +107,11 @@ export function initAudio() {
     if (document.visibilityState === "hidden") { audio.pause(); }
     else if (wantOn && started) { void play(); }
   });
+
+  emit(); // let any already-mounted UI paint the correct initial state
 }
 
-/** Current desired music state (for the account-sheet toggle rendering). */
+/** Current desired music state (for toggle rendering). */
 export function isMusicOn(): boolean {
   return wantOn;
 }
@@ -110,5 +122,15 @@ export function toggleMusic(): boolean {
   savePref(wantOn);
   if (wantOn) void play();   // play() is safe even before unlock; retries on gesture
   else pause();
+  emit();                    // keep header button + account sheet in sync
   return wantOn;
+}
+
+/** Subscribe to music on/off changes. Returns an unsubscribe function. */
+export function onMusicChange(fn: (on: boolean) => void): () => void {
+  listeners.push(fn);
+  return () => {
+    const i = listeners.indexOf(fn);
+    if (i >= 0) listeners.splice(i, 1);
+  };
 }

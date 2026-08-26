@@ -9,6 +9,13 @@
  *  - Selected-node pop + haptic tick.
  *  - v2 look: linen disc, indigo idle dots, amber selected dots, glowing trail.
  *
+ * NEW (tester feedback):
+ *  - ISSUE 4 — anti-crowding at 7-8 letters: node size shrinks and the ring
+ *    grows a touch as letter count rises (see computeGeom / "Option A").
+ *  - VIBRANCY — radial-gradient disc face + amber rim + gradient letter dots.
+ *  - The rounded-rectangle "frame" is now removed in theme.css (.wheel), so the
+ *    only thing you see is the round disc painted here.
+ *
  * SIZING: the canvas is capped by the SMALLER of the parent width AND a share
  * of the viewport height (viewportHeightFactor), so it never pushes the
  * Shuffle/Hint buttons off-screen.
@@ -18,24 +25,36 @@
 
 // ---- TUNING: adjust during playtesting -------------------------------------
 const TUNING = {
-  nodeRadiusFactor: 0.090,     // visual dot radius (relative to canvas size)
-  hitRadiusFactor: 0.130,      // touch target radius (>= nodeRadius)
-  wheelRadiusFactor: 0.360,    // ring radius the dots sit on
+  nodeRadiusFactor: 0.090,     // visual dot radius (relative to canvas size) — BASE (<=6 letters)
+  hitRadiusFactor: 0.130,      // touch target radius (>= nodeRadius) — BASE
+  wheelRadiusFactor: 0.360,    // ring radius the dots sit on — BASE
   trailWidthFactor: 0.038,     // amber connector thickness
   selectedScale: 1.14,         // selected-dot pop
   hapticMs: 8,                 // vibration per new letter (0 = off)
   minWordLength: 3,
   maxCanvasPx: 420,            // hard ceiling
-  viewportHeightFactor: 0.36,  // wheel never taller than 40% of viewport height
+  viewportHeightFactor: 0.36,  // wheel never taller than 36% of viewport height
   widthFactor: 0.86,           // …nor wider than 86% of its parent's width
-  // --- v2 look ---
-  faceColor:      "#F4EDE4",   // wheel disc face (linen)
-  nodeColor:      "#2C3F63",   // idle letter dot (indigo-soft)
+
+  // Anti-crowding (Option A). For each letter above 6:
+  crowdNodeShrink: 0.14,       // node radius × (1 - shrink*over)
+  crowdRingGrow:   0.015,      // ring radius + grow*over (capped below)
+  crowdHitShrink:  0.12,       // hit radius × (1 - shrink*over)
+  wheelRadiusMax:  0.380,      // cap so the disc + glow never clip the canvas
+
+  // --- v2 look (more vibrant) ---
+  faceColor:      "#F4EDE4",   // wheel disc face (linen) — gradient mid-stop
+  faceHi:         "#FFFFFF",   // disc centre highlight
+  faceLo:         "#E7D8BF",   // disc outer edge (warm)
+  rimColor:       "#E4A853",   // amber rim around the disc
+  nodeColor:      "#2F4A9E",   // idle letter dot — vibrant indigo-blue
+  nodeColorHi:    "#5B7BD6",   // idle dot top highlight (gradient)
   nodeSelected:   "#E4A853",   // selected dot (amber)
-  nodeText:       "#F4EDE4",   // idle letter colour
+  nodeSelGlow:    "#F6CB86",   // selected dot highlight (gradient)
+  nodeText:       "#FFFFFF",   // idle letter colour
   nodeTextSel:    "#0E1729",   // selected letter colour (ink, for contrast)
-  trailColor:     "#E4A853",   // swipe connector (amber)
-  glowColor:      "rgba(228,168,83,0.55)",
+  trailColor:     "#F2C078",   // swipe connector (bright amber)
+  glowColor:      "rgba(242,192,120,0.65)",
 };
 // ----------------------------------------------------------------------------
 
@@ -49,6 +68,13 @@ export class Wheel {
   private dragging = false;
   private pointer = { x: 0, y: 0 };
   private letters: string[];
+
+  // Geometry factors, recomputed per layout based on letter count (Option A).
+  private geom = {
+    nodeR: TUNING.nodeRadiusFactor,
+    wheelR: TUNING.wheelRadiusFactor,
+    hitR: TUNING.hitRadiusFactor,
+  };
 
   onUpdate: (word: string) => void = () => {};
   onSubmit: (word: string) => void = () => {};
@@ -97,9 +123,27 @@ export class Wheel {
     this.layout(); this.draw();
   };
 
+  /** Option A: scale node/ring/hit factors so 7-8 letters don't crowd. */
+  private computeGeom() {
+    const n = this.letters.length;
+    let nodeR = TUNING.nodeRadiusFactor;
+    let wheelR = TUNING.wheelRadiusFactor;
+    let hitR = TUNING.hitRadiusFactor;
+    if (n > 6) {
+      const over = n - 6;                     // 1 at 7 letters, 2 at 8, …
+      nodeR = TUNING.nodeRadiusFactor * (1 - TUNING.crowdNodeShrink * over);
+      wheelR = Math.min(TUNING.wheelRadiusMax, TUNING.wheelRadiusFactor + TUNING.crowdRingGrow * over);
+      hitR = TUNING.hitRadiusFactor * (1 - TUNING.crowdHitShrink * over);
+    }
+    // Safety: hit target must never be smaller than the visible dot.
+    hitR = Math.max(hitR, nodeR * 1.05);
+    this.geom = { nodeR, wheelR, hitR };
+  }
+
   private layout() {
+    this.computeGeom();
     const size = this.cssSize();
-    const cx = size / 2, cy = size / 2, R = size * TUNING.wheelRadiusFactor;
+    const cx = size / 2, cy = size / 2, R = size * this.geom.wheelR;
     this.nodes = this.letters.map((ch, i) => {
       const ang = -Math.PI / 2 + (i * 2 * Math.PI) / this.letters.length;
       return { ch, x: cx + R * Math.cos(ang), y: cy + R * Math.sin(ang), idx: i };
@@ -107,7 +151,7 @@ export class Wheel {
   }
 
   private nodeAt(x: number, y: number): Node | null {
-    const hit = this.cssSize() * TUNING.hitRadiusFactor;
+    const hit = this.cssSize() * this.geom.hitR;
     let best: Node | null = null, bestD = Infinity;
     for (const n of this.nodes) {
       const d = Math.hypot(n.x - x, n.y - y);
@@ -172,13 +216,21 @@ export class Wheel {
     const size = this.cssSize();
     ctx.clearRect(0, 0, size, size);
 
-    // 1 · Wheel disc face
+    // 1 · Wheel disc face — vibrant radial gradient + amber rim
     const cx = size / 2, cy = size / 2;
-    const disc = size * (TUNING.wheelRadiusFactor + TUNING.nodeRadiusFactor + 0.03);
+    const disc = size * (this.geom.wheelR + this.geom.nodeR + 0.03);
+    const face = ctx.createRadialGradient(cx, cy - disc * 0.22, disc * 0.15, cx, cy, disc);
+    face.addColorStop(0, TUNING.faceHi);
+    face.addColorStop(0.55, TUNING.faceColor);
+    face.addColorStop(1, TUNING.faceLo);
     ctx.beginPath();
     ctx.arc(cx, cy, disc, 0, Math.PI * 2);
-    ctx.fillStyle = TUNING.faceColor;
+    ctx.fillStyle = face;
     ctx.fill();
+    // amber rim
+    ctx.lineWidth = size * 0.012;
+    ctx.strokeStyle = TUNING.rimColor;
+    ctx.stroke();
 
     // 2 · Glowing swipe trail through selected nodes (+ toward pointer)
     if (this.path.length > 0) {
@@ -201,8 +253,8 @@ export class Wheel {
       ctx.restore();
     }
 
-    // 3 · Letter nodes
-    const rNode = size * TUNING.nodeRadiusFactor;
+    // 3 · Letter nodes (gradient fill for depth + vibrancy)
+    const rNode = size * this.geom.nodeR;
     for (const n of this.nodes) {
       const selected = this.path.includes(n.idx);
       const r = selected ? rNode * TUNING.selectedScale : rNode;
@@ -212,9 +264,17 @@ export class Wheel {
         ctx.shadowColor = TUNING.glowColor;
         ctx.shadowBlur = size * 0.06;
       }
+      const grad = ctx.createRadialGradient(n.x, n.y - r * 0.35, r * 0.2, n.x, n.y, r);
+      if (selected) {
+        grad.addColorStop(0, TUNING.nodeSelGlow);
+        grad.addColorStop(1, TUNING.nodeSelected);
+      } else {
+        grad.addColorStop(0, TUNING.nodeColorHi);
+        grad.addColorStop(1, TUNING.nodeColor);
+      }
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = selected ? TUNING.nodeSelected : TUNING.nodeColor;
+      ctx.fillStyle = grad;
       ctx.fill();
       ctx.restore();
 

@@ -12,10 +12,14 @@ body{
 }
 
 /* Hard-lock the app to exactly one viewport height; nothing scrolls.
-   dvh accounts for mobile browser chrome show/hide. */
+   IMPORTANT: older Android WebViews (pre-Chromium ~108) don't understand the
+   `dvh` unit and DROP the rule — which collapsed #app to auto height and left
+   the puzzle invisible. We declare `100vh` FIRST as a universal fallback, then
+   let modern browsers override it with the nicer dynamic `100dvh`. */
 #app{
   width:min(480px,100vw);
-  height:100dvh;
+  height:100vh;   /* fallback for older Android WebViews */
+  height:100dvh;  /* modern browsers: accounts for chrome show/hide */
   overflow:hidden;
   display:flex; flex-direction:column;
   justify-content:space-between; /* add this */

@@ -13,6 +13,7 @@ import { offerRewardedTopUp } from "./ads/ads";
 import { installBestRewardedProvider } from "./ads/admob-provider";
 import { initSWUpdate } from "./ui/sw-update";
 import { initAudio } from "./audio/audio";
+import { initMusicButton } from "./ui/music-toggle";
 import { initChapterMap } from "./ui/chapter-map";
 import { showBonusWords } from "./ui/bonus-popup";
 // Web-native H5 Games Ads — the ad path that actually works in the TWA.
@@ -354,9 +355,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   initAnalytics();                 // Google Analytics 4 (safe no-op if blocked)
-  initH5Ads(false);                // web-native H5 ads (music defaults off → sound:"off")
+  initH5Ads(false);                // web-native H5 ads (the `false` is the AD sound flag, not music)
   installBestRewardedProvider();   // AdMob bridge if built → else H5 web provider → else mock
   initSWUpdate();
-  initAudio();                     // background music + mute toggle (default off)
+  initAudio();                     // background music (default ON, autoplay-safe: starts on first tap)
+  initMusicButton();               // 🔊 main-screen music toggle (syncs with the account-sheet toggle)
   boot();
 });

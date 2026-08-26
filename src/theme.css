@@ -1,11 +1,17 @@
 /* =====================================================================
-   Lexora — Polished Theme Layer  (v3.2)
+   Lexora — Polished Theme Layer  (v3.3)
    Cosmetic-only. Adds: scenic background image, frosted board card,
    readable slots, juicy buttons, level-complete celebration styles,
    AND account button + sign-in sheet.
 
+   v3.3 changes (tester feedback):
+     • Section 6 · wheel "frame" removed — the disc is painted on the canvas,
+       so the CSS box-shadow/border-radius rectangle (visible on old Androids)
+       is gone.
+     • New · main-screen music button (.music-btn) styling.
+
    HOW TO USE
-     • Save this file as:  src/theme.css   (overwrites v3.1)
+     • Save this file as:  src/theme.css   (overwrites v3.2)
      • Daily background images live in public/ as bg-0.webp … bg-N.webp
      • src/main.ts imports this AFTER './style.css'  ✓
    ===================================================================== */
@@ -149,11 +155,16 @@ body::after {
 }
 
 /* ------------------------------------------------------------------ */
-/* 6 · Wheel frame                                                     */
+/* 6 · Wheel frame — REMOVED.                                          */
+/*     The vibrant disc + amber rim are painted on the canvas itself   */
+/*     (see src/ui/wheel.ts draw()). The old CSS box-shadow +          */
+/*     border-radius produced a rounded rectangle that banded and      */
+/*     showed up on older Android GPUs. Keep the canvas transparent.   */
 /* ------------------------------------------------------------------ */
 .wheel {
-  border-radius: 28px;
-  box-shadow: 0 18px 40px -12px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.6);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 /* ------------------------------------------------------------------ */
@@ -544,6 +555,22 @@ header {
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 .map-btn:active { transform: scale(0.94); }
+
+/* Main-screen music toggle (🔊 / 🔇) — sits in the header next to map/account.
+   Amber "on" state matches the signed-in account button so the row feels
+   cohesive. Stays in sync with the account-sheet toggle via onMusicChange(). */
+.music-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--lx-card-brd); background: var(--lx-card);
+  color: var(--lx-ink); font-size: 15px; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.music-btn.on {
+  background: linear-gradient(180deg, var(--lx-amber-glow), var(--lx-amber));
+  color: var(--lx-indigo-deep); border-color: transparent;
+}
+.music-btn:active { transform: scale(0.94); }
 
 /* Chapter map overlay */
 .chapter-map {
