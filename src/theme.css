@@ -1,17 +1,22 @@
 /* =====================================================================
-   Lexora — Polished Theme Layer  (v3.4)
+   Lexora — Polished Theme Layer  (v3.5)
    Cosmetic-only. Adds: scenic background image, readable slots,
    juicy buttons, level-complete celebration styles, AND account button
    + sign-in sheet.
 
-   v3.4 changes (tester feedback):
-     • Section 3 · puzzle "card" removed — the crossword now floats directly
-       on the scenery (no frosted rectangle behind it), matching the wheel.
-     • Section 6 · wheel "frame" removed (v3.3) — disc is painted on canvas.
-     • Main-screen music button (.music-btn) styling (v3.3).
+   v3.5 changes (tester feedback):
+     • Section 4 · bolder empty-slot borders — the old white @18% inset line
+       vanished on bright scenery (e.g. Misty Morning sunrise). Now a dark
+       ink border + thin linen line + soft drop, so slots read on BOTH bright
+       and dark chapter backgrounds.
+
+   v3.4 changes:
+     • Section 3 · puzzle "card" removed — crossword floats on the scenery.
+     • Section 6 · wheel "frame" removed — disc is painted on canvas.
+     • Main-screen music button (.music-btn) styling.
 
    HOW TO USE
-     • Save this file as:  src/theme.css   (overwrites v3.3)
+     • Save this file as:  src/theme.css   (overwrites v3.4)
      • Daily background images live in public/ as bg-0.webp … bg-N.webp
      • src/main.ts imports this AFTER './style.css'  ✓
    ===================================================================== */
@@ -128,9 +133,16 @@ body::after {
 /* ------------------------------------------------------------------ */
 /* 4 · Cells                                                           */
 /* ------------------------------------------------------------------ */
+/* Empty slots: BOLD + background-proof. A dark ink border reads on bright
+   scenery (sunrise chapters), while the thin inner linen line keeps it
+   visible on dark chapters (Dusk/Cosmic). Faint dark fill + soft drop lift
+   the grid off busy backgrounds without a full card. */
 .cell.slot {
-  background: var(--lx-slot);
-  box-shadow: inset 0 0 0 1.5px var(--lx-slot-brd);
+  background: rgba(14,23,41,.28);
+  box-shadow:
+    inset 0 0 0 2px rgba(14,23,41,.55),      /* bold dark inner border   */
+    inset 0 0 0 3px rgba(244,237,228,.45),   /* thin linen line (dark bg) */
+    0 2px 6px rgba(0,0,0,.25);               /* soft drop for separation  */
   border-radius: 10px;
 }
 .cell.empty { background: transparent; box-shadow: none; }
