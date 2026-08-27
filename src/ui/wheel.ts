@@ -1,34 +1,29 @@
 /**
- * Lexora swipe letter-wheel (Canvas) — touch-tuned v2 + height-aware sizing.
+ * Lexora swipe letter-wheel (Canvas) — touch-tuned v3 "Helm" edition.
  *
- * v2 feel improvements:
- *  - HIT radius separate from and larger than the VISUAL node radius.
- *  - BACKTRACKING: drag back onto the previous node to deselect the last letter.
- *  - Scroll/gesture lock while dragging.
- *  - Pointer capture so a drag leaving the canvas still tracks.
- *  - Selected-node pop + haptic tick.
- *  - v2 look: linen disc, indigo idle dots, amber selected dots, glowing trail.
+ * WHAT'S NEW (tester feedback):
+ *  - THEMED WHEEL that changes per JOURNEY (chapter): ship's helm → car
+ *    steering wheel → aviator yoke → explorer's compass → cosmic dial → sunset
+ *    regatta. Each theme sets its own disc gradient, rim, spokes, hub and a
+ *    multi-colour LETTER PALETTE (Wordscapes-style colourful tiles).
+ *  - Gone: the harsh single orange border + flat blue letters.
+ *  - Kept: v2 touch feel (separate hit radius, backtracking, pointer capture,
+ *    haptics) AND Option-A anti-crowding for 7-8 letters.
  *
- * NEW (tester feedback):
- *  - ISSUE 4 — anti-crowding at 7-8 letters: node size shrinks and the ring
- *    grows a touch as letter count rises (see computeGeom / "Option A").
- *  - VIBRANCY — radial-gradient disc face + amber rim + gradient letter dots.
- *  - The rounded-rectangle "frame" is now removed in theme.css (.wheel), so the
- *    only thing you see is the round disc painted here.
+ * The theme is chosen from the LEVEL NUMBER passed by main.ts:
+ *     new Wheel(container, letters, level.levelNumber)
+ * Assuming ~20 levels per chapter (15 chapters / 300 levels), the theme
+ * advances one step per chapter and cycles through THEMES.
  *
- * SIZING: the canvas is capped by the SMALLER of the parent width AND a share
- * of the viewport height (viewportHeightFactor), so it never pushes the
- * Shuffle/Hint buttons off-screen.
- *
- * All feel + sizing + colour constants live in TUNING (see PLAYTEST.md).
+ * All feel + sizing constants live in TUNING; all looks live in THEMES.
  */
 
-// ---- TUNING: adjust during playtesting -------------------------------------
+// ---- TUNING: feel + sizing (adjust during playtesting) ---------------------
 const TUNING = {
-  nodeRadiusFactor: 0.090,     // visual dot radius (relative to canvas size) — BASE (<=6 letters)
+  nodeRadiusFactor: 0.092,     // visual dot radius (relative to canvas size) — BASE (<=6 letters)
   hitRadiusFactor: 0.130,      // touch target radius (>= nodeRadius) — BASE
-  wheelRadiusFactor: 0.360,    // ring radius the dots sit on — BASE
-  trailWidthFactor: 0.038,     // amber connector thickness
+  wheelRadiusFactor: 0.355,    // ring radius the dots sit on — BASE
+  trailWidthFactor: 0.040,     // connector thickness
   selectedScale: 1.14,         // selected-dot pop
   hapticMs: 8,                 // vibration per new letter (0 = off)
   minWordLength: 3,
@@ -38,24 +33,76 @@ const TUNING = {
 
   // Anti-crowding (Option A). For each letter above 6:
   crowdNodeShrink: 0.14,       // node radius × (1 - shrink*over)
-  crowdRingGrow:   0.015,      // ring radius + grow*over (capped below)
+  crowdRingGrow:   0.015,      // ring radius + grow*over (capped)
   crowdHitShrink:  0.12,       // hit radius × (1 - shrink*over)
-  wheelRadiusMax:  0.380,      // cap so the disc + glow never clip the canvas
+  wheelRadiusMax:  0.375,      // cap so disc + spokes never clip the canvas
 
-  // --- v2 look (more vibrant) ---
-  faceColor:      "#F4EDE4",   // wheel disc face (linen) — gradient mid-stop
-  faceHi:         "#FFFFFF",   // disc centre highlight
-  faceLo:         "#E7D8BF",   // disc outer edge (warm)
-  rimColor:       "#E4A853",   // amber rim around the disc
-  nodeColor:      "#2F4A9E",   // idle letter dot — vibrant indigo-blue
-  nodeColorHi:    "#5B7BD6",   // idle dot top highlight (gradient)
-  nodeSelected:   "#E4A853",   // selected dot (amber)
-  nodeSelGlow:    "#F6CB86",   // selected dot highlight (gradient)
-  nodeText:       "#FFFFFF",   // idle letter colour
-  nodeTextSel:    "#0E1729",   // selected letter colour (ink, for contrast)
-  trailColor:     "#F2C078",   // swipe connector (bright amber)
-  glowColor:      "rgba(242,192,120,0.65)",
+  levelsPerChapter: 20,        // theme advances every N levels
 };
+
+// ---- THEMES: one per journey; cycles if there are more chapters ------------
+interface WheelTheme {
+  name: string;
+  faceHi: string;   // disc centre (light)
+  faceLo: string;   // disc edge
+  rim: string;      // outer rim ring
+  spoke: string;    // spoke lines (drawn faint)
+  knob: string;     // handle knobs on the rim
+  hub: string;      // centre cap
+  spokes: number;   // how many spokes/handles (evokes the vehicle)
+  letters: string[];// multi-colour tile palette (cycled per letter)
+  trail: string;    // swipe connector
+  glow: string;     // selected-node glow
+}
+
+const THEMES: WheelTheme[] = [
+  { // 1 · Ship's Helm — brass + teal
+    name: "Helm",
+    faceHi: "#FBF6EC", faceLo: "#E7D6B6",
+    rim: "#B07D34", spoke: "#8A5A22", knob: "#C79A4B", hub: "#5A3E1B", spokes: 8,
+    letters: ["#0C7B93", "#1F6F8B", "#145DA0", "#2E8BC0", "#0A9396", "#3C6E71"],
+    trail: "#E4A853", glow: "rgba(228,168,83,0.6)",
+  },
+  { // 2 · Cruiser — car steering wheel, charcoal + red
+    name: "Cruiser",
+    faceHi: "#F3F4F6", faceLo: "#C9CDD4",
+    rim: "#2B2F36", spoke: "#3A3F48", knob: "#C1362F", hub: "#1B1E24", spokes: 3,
+    letters: ["#C1362F", "#E4572E", "#A4243B", "#D64550", "#B5651D", "#8A2E3B"],
+    trail: "#E4572E", glow: "rgba(228,87,46,0.55)",
+  },
+  { // 3 · Aviator — plane yoke, sky + steel
+    name: "Aviator",
+    faceHi: "#EEF5FF", faceLo: "#C3D6EF",
+    rim: "#2E5EAA", spoke: "#4A6FA5", knob: "#8FB3E0", hub: "#1B3A66", spokes: 4,
+    letters: ["#2E5EAA", "#3A86FF", "#4361EE", "#4895EF", "#277DA1", "#5A7FBF"],
+    trail: "#3A86FF", glow: "rgba(58,134,255,0.5)",
+  },
+  { // 4 · Compass — explorer, green + gold
+    name: "Compass",
+    faceHi: "#F4F1E4", faceLo: "#D8D2B4",
+    rim: "#4A7043", spoke: "#5E7C4E", knob: "#C9A227", hub: "#2F4A2A", spokes: 8,
+    letters: ["#2A9D8F", "#457B45", "#6A994E", "#386641", "#52796F", "#7C9A3E"],
+    trail: "#E9C46A", glow: "rgba(233,196,106,0.55)",
+  },
+  { // 5 · Cosmic dial — purple + magenta
+    name: "Cosmic",
+    faceHi: "#F3ECFB", faceLo: "#D2BEEC",
+    rim: "#6A2C91", spoke: "#7E3FA6", knob: "#C77DFF", hub: "#3C1361", spokes: 6,
+    letters: ["#7B2CBF", "#9D4EDD", "#5A189A", "#B5179E", "#6A4C93", "#8E3B9E"],
+    trail: "#C77DFF", glow: "rgba(199,125,255,0.55)",
+  },
+  { // 6 · Sunset Regatta — orange + pink
+    name: "Sunset",
+    faceHi: "#FFF3E9", faceLo: "#F6CBB0",
+    rim: "#D7263D", spoke: "#E85D75", knob: "#F4A259", hub: "#8A1C2B", spokes: 6,
+    letters: ["#EF6C00", "#E85D75", "#D7263D", "#F4739E", "#C1352F", "#E07A5F"],
+    trail: "#F4A259", glow: "rgba(244,162,89,0.55)",
+  },
+];
+
+const SELECTED_FILL = "#E4A853"; // amber for selected tiles (consistent w/ trail)
+const SELECTED_TEXT = "#0E1729"; // ink text on amber
+const TILE_TEXT     = "#FFFFFF"; // white text on coloured tiles
 // ----------------------------------------------------------------------------
 
 interface Node { ch: string; x: number; y: number; idx: number; }
@@ -68,8 +115,9 @@ export class Wheel {
   private dragging = false;
   private pointer = { x: 0, y: 0 };
   private letters: string[];
+  private theme: WheelTheme;
 
-  // Geometry factors, recomputed per layout based on letter count (Option A).
+  // Geometry factors, recomputed per layout from letter count (Option A).
   private geom = {
     nodeR: TUNING.nodeRadiusFactor,
     wheelR: TUNING.wheelRadiusFactor,
@@ -79,8 +127,12 @@ export class Wheel {
   onUpdate: (word: string) => void = () => {};
   onSubmit: (word: string) => void = () => {};
 
-  constructor(container: HTMLElement, letters: string) {
+  constructor(container: HTMLElement, letters: string, levelNumber = 1) {
     this.letters = letters.toUpperCase().split("");
+    // Pick the journey theme from the level (one step per chapter, then cycle).
+    const chapterIdx = Math.floor((Math.max(1, levelNumber) - 1) / TUNING.levelsPerChapter);
+    this.theme = THEMES[chapterIdx % THEMES.length];
+
     this.canvas = document.createElement("canvas");
     this.canvas.className = "wheel";
     container.innerHTML = "";
@@ -108,7 +160,6 @@ export class Wheel {
 
   private resize = () => {
     const parentW = this.canvas.parentElement?.clientWidth ?? 360;
-    // Fit by the smaller of: parent width, a share of viewport height, hard cap.
     const size = Math.floor(Math.min(
       parentW * TUNING.widthFactor,
       window.innerHeight * TUNING.viewportHeightFactor,
@@ -130,13 +181,12 @@ export class Wheel {
     let wheelR = TUNING.wheelRadiusFactor;
     let hitR = TUNING.hitRadiusFactor;
     if (n > 6) {
-      const over = n - 6;                     // 1 at 7 letters, 2 at 8, …
+      const over = n - 6;
       nodeR = TUNING.nodeRadiusFactor * (1 - TUNING.crowdNodeShrink * over);
       wheelR = Math.min(TUNING.wheelRadiusMax, TUNING.wheelRadiusFactor + TUNING.crowdRingGrow * over);
       hitR = TUNING.hitRadiusFactor * (1 - TUNING.crowdHitShrink * over);
     }
-    // Safety: hit target must never be smaller than the visible dot.
-    hitR = Math.max(hitR, nodeR * 1.05);
+    hitR = Math.max(hitR, nodeR * 1.05); // never smaller than the visible dot
     this.geom = { nodeR, wheelR, hitR };
   }
 
@@ -213,33 +263,78 @@ export class Wheel {
 
   private draw() {
     const ctx = this.ctx;
+    const t = this.theme;
     const size = this.cssSize();
     ctx.clearRect(0, 0, size, size);
 
-    // 1 · Wheel disc face — vibrant radial gradient + amber rim
     const cx = size / 2, cy = size / 2;
     const disc = size * (this.geom.wheelR + this.geom.nodeR + 0.03);
-    const face = ctx.createRadialGradient(cx, cy - disc * 0.22, disc * 0.15, cx, cy, disc);
-    face.addColorStop(0, TUNING.faceHi);
-    face.addColorStop(0.55, TUNING.faceColor);
-    face.addColorStop(1, TUNING.faceLo);
+
+    // 1 · Disc face — soft light radial gradient (Wordscapes-style)
+    const face = ctx.createRadialGradient(cx, cy - disc * 0.28, disc * 0.10, cx, cy, disc);
+    face.addColorStop(0, t.faceHi);
+    face.addColorStop(1, t.faceLo);
     ctx.beginPath();
     ctx.arc(cx, cy, disc, 0, Math.PI * 2);
     ctx.fillStyle = face;
     ctx.fill();
-    // amber rim
-    ctx.lineWidth = size * 0.012;
-    ctx.strokeStyle = TUNING.rimColor;
+
+    // 2 · Themed rim (two soft strokes, not a harsh single border)
+    ctx.lineWidth = size * 0.022;
+    ctx.strokeStyle = t.rim;
+    ctx.beginPath();
+    ctx.arc(cx, cy, disc - ctx.lineWidth * 0.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = size * 0.006;
+    ctx.strokeStyle = t.knob;
+    ctx.beginPath();
+    ctx.arc(cx, cy, disc - size * 0.03, 0, Math.PI * 2);
     ctx.stroke();
 
-    // 2 · Glowing swipe trail through selected nodes (+ toward pointer)
+    // 3 · Wheel motif — faint spokes from hub + handle knobs on the rim.
+    //     Spoke count evokes the vehicle (3=steering, 4=yoke, 8=helm…).
+    const knobR = disc - size * 0.03;
+    ctx.save();
+    ctx.strokeStyle = t.spoke;
+    ctx.globalAlpha = 0.28;                 // subtle so it never fights letters
+    ctx.lineWidth = size * 0.014;
+    ctx.lineCap = "round";
+    for (let i = 0; i < t.spokes; i++) {
+      const a = -Math.PI / 2 + (i * 2 * Math.PI) / t.spokes;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + knobR * Math.cos(a), cy + knobR * Math.sin(a));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < t.spokes; i++) {
+      const a = -Math.PI / 2 + (i * 2 * Math.PI) / t.spokes;
+      const kx = cx + knobR * Math.cos(a), ky = cy + knobR * Math.sin(a);
+      ctx.beginPath();
+      ctx.arc(kx, ky, size * 0.020, 0, Math.PI * 2);
+      ctx.fillStyle = t.knob;
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 4 · Centre hub cap (with a soft highlight)
+    const hub = size * 0.052;
+    const hubGrad = ctx.createRadialGradient(cx, cy - hub * 0.4, hub * 0.2, cx, cy, hub);
+    hubGrad.addColorStop(0, t.knob);
+    hubGrad.addColorStop(1, t.hub);
+    ctx.beginPath();
+    ctx.arc(cx, cy, hub, 0, Math.PI * 2);
+    ctx.fillStyle = hubGrad;
+    ctx.fill();
+
+    // 5 · Glowing swipe trail through selected nodes (+ toward pointer)
     if (this.path.length > 0) {
       ctx.save();
       ctx.lineJoin = "round";
       ctx.lineCap = "round";
       ctx.lineWidth = size * TUNING.trailWidthFactor;
-      ctx.strokeStyle = TUNING.trailColor;
-      ctx.shadowColor = TUNING.glowColor;
+      ctx.strokeStyle = t.trail;
+      ctx.shadowColor = t.glow;
       ctx.shadowBlur = size * 0.05;
       ctx.beginPath();
       this.path.forEach((idx, i) => {
@@ -247,43 +342,60 @@ export class Wheel {
         if (i === 0) ctx.moveTo(n.x, n.y);
         else ctx.lineTo(n.x, n.y);
       });
-      // live segment to the finger while dragging
       if (this.dragging) ctx.lineTo(this.pointer.x, this.pointer.y);
       ctx.stroke();
       ctx.restore();
     }
 
-    // 3 · Letter nodes (gradient fill for depth + vibrancy)
+    // 6 · Letter tiles — multi-colour palette, glossy, with pop on select
     const rNode = size * this.geom.nodeR;
     for (const n of this.nodes) {
       const selected = this.path.includes(n.idx);
       const r = selected ? rNode * TUNING.selectedScale : rNode;
+      const base = selected ? SELECTED_FILL : t.letters[n.idx % t.letters.length];
 
       ctx.save();
-      if (selected) {
-        ctx.shadowColor = TUNING.glowColor;
-        ctx.shadowBlur = size * 0.06;
-      }
-      const grad = ctx.createRadialGradient(n.x, n.y - r * 0.35, r * 0.2, n.x, n.y, r);
-      if (selected) {
-        grad.addColorStop(0, TUNING.nodeSelGlow);
-        grad.addColorStop(1, TUNING.nodeSelected);
-      } else {
-        grad.addColorStop(0, TUNING.nodeColorHi);
-        grad.addColorStop(1, TUNING.nodeColor);
-      }
+      // drop shadow for depth
+      ctx.shadowColor = selected ? t.glow : "rgba(0,0,0,0.28)";
+      ctx.shadowBlur = size * (selected ? 0.06 : 0.03);
+      ctx.shadowOffsetY = selected ? 0 : size * 0.006;
+
+      // glossy radial fill
+      const g = ctx.createRadialGradient(n.x, n.y - r * 0.4, r * 0.15, n.x, n.y, r);
+      g.addColorStop(0, this.lighten(base, 0.28));
+      g.addColorStop(1, base);
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
+      ctx.fillStyle = g;
       ctx.fill();
       ctx.restore();
 
+      // subtle top highlight ring
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.lineWidth = Math.max(1, size * 0.004);
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.beginPath();
+      ctx.arc(n.x, n.y - r * 0.06, r * 0.9, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.stroke();
+      ctx.restore();
+
       // letter
-      ctx.fillStyle = selected ? TUNING.nodeTextSel : TUNING.nodeText;
-      ctx.font = `700 ${Math.floor(r * 1.05)}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+      ctx.fillStyle = selected ? SELECTED_TEXT : TILE_TEXT;
+      ctx.font = `800 ${Math.floor(r * 1.05)}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(n.ch, n.x, n.y);
     }
+  }
+
+  /** Mix a hex colour toward white by amount [0..1] for the glossy top. */
+  private lighten(hex: string, amt: number): string {
+    const c = hex.replace("#", "");
+    const r = parseInt(c.slice(0, 2), 16);
+    const g = parseInt(c.slice(2, 4), 16);
+    const b = parseInt(c.slice(4, 6), 16);
+    const mix = (v: number) => Math.round(v + (255 - v) * amt);
+    return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
   }
 }

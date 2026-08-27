@@ -6,12 +6,16 @@
  *  - Signed IN:  header shows the avatar initial; tapping shows the email.
  *  - Sign OUT clears LOCAL progress (fair on shared devices) — your real
  *    progress is safe in the cloud and restores when you sign back in.
- *  - Sheet has a Music toggle + Privacy + Delete my data + Buy me a coffee.
+ *  - Sheet has Privacy + Delete my data + Buy me a coffee.
  *  - Reactive refresh (focus / visibility / retry) so the avatar updates
  *    without a hard refresh after the OAuth or magic-link callback.
+ *
+ * NOTE (tester feedback): the Music toggle has MOVED to the main screen
+ * (header 🔊/🔇 button — see src/ui/music-toggle.ts). It is intentionally no
+ * longer in this sheet, so players don't have to open the account panel to
+ * control sound.
  */
 import { authClient } from "../auth/client";
-import { isMusicOn, toggleMusic } from "../audio/audio";
 
 const LS_SCORE = "lexora.score";
 const LS_LEVEL = "lexora.current";
@@ -176,19 +180,6 @@ function renderButton(user: { email?: string | null; name?: string | null; image
   }
 }
 
-/** HTML for the Music settings row (shown in both sheet states). */
-function musicRowHTML(): string {
-  const on = isMusicOn();
-  return `
-    <div class="acc-setting">
-      <span class="acc-setting-label">🎵 Music</span>
-      <button class="acc-toggle ${on ? "on" : ""}" id="acc-music" type="button"
-              role="switch" aria-checked="${on ? "true" : "false"}">
-        <span class="acc-toggle-knob"></span>
-      </button>
-    </div>`;
-}
-
 function openSheet() {
   const existing = document.getElementById("account-sheet");
   if (existing) { existing.remove(); return; }
@@ -206,7 +197,6 @@ function openSheet() {
           <p class="acc-title">Synced</p>
           <p class="acc-email">Signed in as <strong>${user.email ?? ""}</strong>.</p>
           <p class="acc-note">Your score syncs across your devices. ☁️</p>
-          ${musicRowHTML()}
           <button class="acc-btn acc-ghost" id="acc-signout">Sign out</button>
           <a class="acc-btn acc-coffee" href="${COFFEE_URL}" target="_blank" rel="noopener">☕ Buy me a coffee</a>
           <div class="acc-foot">
@@ -218,7 +208,6 @@ function openSheet() {
         <div class="acc-card">
           <p class="acc-title">Save your progress</p>
           <p class="acc-note">Sign in to sync your score across devices.</p>
-          ${musicRowHTML()}
           <button class="acc-btn acc-google" id="acc-google">Continue with Google</button>
           <div class="acc-or">or</div>
           <input class="acc-input" id="acc-email" type="email" inputmode="email"
@@ -239,16 +228,6 @@ function openSheet() {
 }
 
 function wireSheet(sheet: HTMLElement, isUser: boolean) {
-  // Music toggle (present in both states).
-  sheet.querySelector("#acc-music")?.addEventListener("click", () => {
-    const on = toggleMusic();
-    const btn = sheet.querySelector("#acc-music") as HTMLElement | null;
-    if (btn) {
-      btn.classList.toggle("on", on);
-      btn.setAttribute("aria-checked", on ? "true" : "false");
-    }
-  });
-
   if (isUser) {
     sheet.querySelector("#acc-signout")?.addEventListener("click", async () => {
       // Sign out returns the device to a fresh guest state. Cloud save is

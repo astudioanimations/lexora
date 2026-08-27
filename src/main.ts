@@ -146,7 +146,8 @@ function startLevel(n: number) {
   $("#tier").textContent = level.tier;
   $("#tier").className = `tier ${level.tier}`;
   board = new Board($("#board-wrap"), level);
-  wheel = new Wheel($("#wheel-wrap"), level.wheelLetters);
+  // Pass levelNumber so the wheel picks its per-journey theme (helm, yoke, …).
+  wheel = new Wheel($("#wheel-wrap"), level.wheelLetters, level.levelNumber);
   wheel.onUpdate = (w) => { $("#current").textContent = w.toUpperCase(); };
   wheel.onSubmit = onSubmit;
   updateProgressBar();

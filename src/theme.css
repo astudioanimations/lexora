@@ -1,17 +1,17 @@
 /* =====================================================================
-   Lexora — Polished Theme Layer  (v3.3)
-   Cosmetic-only. Adds: scenic background image, frosted board card,
-   readable slots, juicy buttons, level-complete celebration styles,
-   AND account button + sign-in sheet.
+   Lexora — Polished Theme Layer  (v3.4)
+   Cosmetic-only. Adds: scenic background image, readable slots,
+   juicy buttons, level-complete celebration styles, AND account button
+   + sign-in sheet.
 
-   v3.3 changes (tester feedback):
-     • Section 6 · wheel "frame" removed — the disc is painted on the canvas,
-       so the CSS box-shadow/border-radius rectangle (visible on old Androids)
-       is gone.
-     • New · main-screen music button (.music-btn) styling.
+   v3.4 changes (tester feedback):
+     • Section 3 · puzzle "card" removed — the crossword now floats directly
+       on the scenery (no frosted rectangle behind it), matching the wheel.
+     • Section 6 · wheel "frame" removed (v3.3) — disc is painted on canvas.
+     • Main-screen music button (.music-btn) styling (v3.3).
 
    HOW TO USE
-     • Save this file as:  src/theme.css   (overwrites v3.2)
+     • Save this file as:  src/theme.css   (overwrites v3.3)
      • Daily background images live in public/ as bg-0.webp … bg-N.webp
      • src/main.ts imports this AFTER './style.css'  ✓
    ===================================================================== */
@@ -111,15 +111,17 @@ body::after {
 }
 
 /* ------------------------------------------------------------------ */
-/* 3 · Frosted glass card behind the puzzle                            */
+/* 3 · Puzzle sits directly on the scenery — no card (tester feedback) */
+/*     The old frosted rounded-rectangle behind the crossword is gone; */
+/*     the individual .cell.slot outlines keep the grid readable.      */
 /* ------------------------------------------------------------------ */
 #board-wrap {
-  background: var(--lx-card);
-  border: 1px solid var(--lx-card-brd);
-  border-radius: var(--lx-radius);
-  box-shadow: var(--lx-shadow);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   padding: 12px 10px;
 }
 
@@ -156,7 +158,7 @@ body::after {
 
 /* ------------------------------------------------------------------ */
 /* 6 · Wheel frame — REMOVED.                                          */
-/*     The vibrant disc + amber rim are painted on the canvas itself   */
+/*     The themed disc + rim + spokes are painted on the canvas itself */
 /*     (see src/ui/wheel.ts draw()). The old CSS box-shadow +          */
 /*     border-radius produced a rounded rectangle that banded and      */
 /*     showed up on older Android GPUs. Keep the canvas transparent.   */
@@ -259,8 +261,6 @@ button:active, .btn:active {
 
 /* ==================================================================
    10 Lexora — Account button + sign-in sheet (v2 layout).
-   REPLACE the existing "Section 10" block at the end of src/theme.css
-   with this one (adds icon, footer links, and a text "Sign in" button).
    ================================================================== */
 
 /* Header button: pill when signed OUT ("Sign in"), circle when signed IN */
@@ -357,7 +357,6 @@ header {
 
 /* ==================================================================
    Lexora — rewarded-ad offer sheet + mock ad overlay.
-   APPEND this to the end of src/theme.css.
    ================================================================== */
 
 /* ---- Opt-in offer sheet (slides up from bottom) ---- */
@@ -433,7 +432,6 @@ header {
 
 /* ==================================================================
    Lexora — service-worker update toast.
-   APPEND this to the end of src/theme.css.
    ================================================================== */
 
 .sw-toast {
@@ -619,29 +617,6 @@ header {
 .cm-current { border-color: var(--lx-amber); box-shadow: 0 0 0 1px var(--lx-amber) inset; }
 .cm-current .cm-badge { color: var(--lx-amber); }
 .cm-done .cm-badge { color: var(--lx-sage, #5B8A72); }
-
-/* Settings row (music toggle) inside the account sheet */
-.acc-setting {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 4px; margin: 4px 0 8px;
-  border-bottom: 1px solid rgba(27,42,74,.1);
-}
-.acc-setting-label { font-size: 15px; font-weight: 700; color: var(--lx-indigo-deep, #0E1729); }
-
-/* iOS-style toggle switch */
-.acc-toggle {
-  position: relative; width: 46px; height: 28px; border-radius: 999px;
-  border: none; cursor: pointer; padding: 0; flex: 0 0 auto;
-  background: #cfc9bd; transition: background .2s ease;
-}
-.acc-toggle.on { background: linear-gradient(180deg, var(--lx-amber-glow,#F2C078), var(--lx-amber,#E4A853)); }
-.acc-toggle-knob {
-  position: absolute; top: 3px; left: 3px; width: 22px; height: 22px;
-  border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
-  transition: transform .2s cubic-bezier(.34,1.56,.64,1);
-}
-.acc-toggle.on .acc-toggle-knob { transform: translateX(18px); }
-
 
 /* Bonus words popup */
 .bonus-pop {
