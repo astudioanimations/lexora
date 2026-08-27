@@ -14,6 +14,7 @@ import { installBestRewardedProvider } from "./ads/admob-provider";
 import { initSWUpdate } from "./ui/sw-update";
 import { initAudio } from "./audio/audio";
 import { initMusicButton } from "./ui/music-toggle";
+import { initMoreGames } from "./ui/more-games";
 import { initChapterMap } from "./ui/chapter-map";
 import { showBonusWords } from "./ui/bonus-popup";
 // Web-native H5 Games Ads — the ad path that actually works in the TWA.
@@ -361,5 +362,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initSWUpdate();
   initAudio();                     // background music (default ON, autoplay-safe: starts on first tap)
   initMusicButton();               // 🔊 main-screen music toggle (syncs with the account-sheet toggle)
+  initMoreGames();                 // 🎮 More Games menu (Tessera, + future games)
   boot();
 });
