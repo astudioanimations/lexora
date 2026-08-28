@@ -24,8 +24,11 @@ import {
   initAnalytics,
   trackLevelStart,
   trackLevelComplete,
+  trackLevelAbandon,
   trackChapterComplete,
   trackHintUsed,
+  trackShuffle,
+  trackBonusWord,
   trackReward,
 } from "./analytics/analytics";
 
@@ -61,6 +64,11 @@ let wheel: Wheel;
 // Cumulative, persisted score + this-level delta for the celebration card.
 let score = loadScore();
 let levelPoints = 0;
+
+// ---- Analytics: per-level timing + abandon tracking ------------------------
+let levelStartMs = 0;      // when the current level began (for duration)
+let levelActive = false;   // true while a level is in progress (not completed)
+let abandonSent = false;   // guards against double-firing abandon per level
 
 async function boot() {
   progress = loadProgress();
@@ -133,10 +141,36 @@ function ensureChapterStrip() {
   if (tier) strip.appendChild(tier);
 }
 
+/** Grid completion % for the CURRENT level (0-100), used for abandon analytics. */
+function currentProgressPercent(): number {
+  if (!level || !round) return 0;
+  const total = level.gridWords.length || 1;
+  return Math.round((round.foundGrid.size / total) * 100);
+}
+
+/** Fire level_abandon for the current in-progress level (once). */
+function abandonCurrentLevel(reason: "switch" | "app_hidden") {
+  if (!levelActive || abandonSent || !level) return;
+  abandonSent = true;
+  levelActive = false;
+  const ch = chapterFor(level.levelNumber);
+  const durationSec = Math.max(0, Math.round((Date.now() - levelStartMs) / 1000));
+  trackLevelAbandon(level.levelNumber, ch.name, currentProgressPercent(), durationSec, reason);
+}
+
 function startLevel(n: number) {
+  // If we're leaving a level that was never completed, log the abandon first
+  // (using the OLD level/round, before we reassign them below).
+  abandonCurrentLevel("switch");
+
   level = levels.find((l) => l.levelNumber === n) ?? levels[0];
   round = newRound();
   levelPoints = 0;
+
+  // Analytics: mark this level active + start the duration clock.
+  levelStartMs = Date.now();
+  levelActive = true;
+  abandonSent = false;
 
   // Chapter drives the background + header label (replaces daily rotation).
   const ch = chapterFor(level.levelNumber);
@@ -181,6 +215,7 @@ function onSubmit(raw: string) {
       if (!res.alreadyFound) {
         $("#bonus-count").textContent = String(round.foundBonus.size);
         award(SCORE.bonusWord);
+        trackBonusWord(level.levelNumber, res.word, round.foundBonus.size);  // analytics
         toast(`+bonus: ${res.word.toUpperCase()} (+${SCORE.bonusWord})`);
       }
       break;
@@ -199,8 +234,10 @@ function onComplete() {
   const finishedNumber = level.levelNumber;
   const next = finishedNumber + 1;
 
-  // Analytics: level finished (GA4 recommended "level_end").
-  trackLevelComplete(finishedNumber, levelPoints, round.foundBonus.size);
+  // Analytics: level finished. Mark inactive so no abandon fires + log duration.
+  levelActive = false;
+  const durationSec = Math.max(0, Math.round((Date.now() - levelStartMs) / 1000));
+  trackLevelComplete(finishedNumber, levelPoints, round.foundBonus.size, durationSec);
 
   // Advance to the next level. An INTERSTITIAL is shown at this natural break;
   // the frequency hint in index.html (90s) throttles it so Lexora stays calm,
@@ -333,7 +370,10 @@ function toast(msg: string, ms = 1200) {
 
 // controls
 document.addEventListener("DOMContentLoaded", () => {
-  $("#shuffle").addEventListener("click", () => wheel.shuffle());
+  $("#shuffle").addEventListener("click", () => {
+    wheel.shuffle();
+    trackShuffle(level?.levelNumber ?? 1);   // analytics: possible "stuck" signal
+  });
   $("#hint").addEventListener("click", () => {
     if (score >= SCORE.hintCost) {
       if (!spend(SCORE.hintCost)) return;
@@ -355,6 +395,14 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("bonus-count")?.closest(".chip")?.addEventListener("click", () => {
     showBonusWords([...round.foundBonus]);
   });
+
+  // Analytics: if the player backgrounds/closes the app mid-level, log an
+  // abandon (their "why did they stop" signal). visibilitychange→hidden is the
+  // reliable mobile/PWA signal; pagehide covers hard teardown as a backstop.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") abandonCurrentLevel("app_hidden");
+  });
+  window.addEventListener("pagehide", () => abandonCurrentLevel("app_hidden"));
 
   initAnalytics();                 // Google Analytics 4 (safe no-op if blocked)
   initH5Ads(false);                // web-native H5 ads (the `false` is the AD sound flag, not music)

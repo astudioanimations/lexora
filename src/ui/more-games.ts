@@ -9,7 +9,11 @@
  * DATA-DRIVEN: add a new game by appending one entry to the GAMES array below.
  * (Note: WordLoom is NOT listed — Lexora *is* the renamed WordLoom.)
  *
- * ICON ASSETS: place square PN/SVG icons in  public/game-icons/  and reference
+ * ANALYTICS: routes through the typed analytics helpers (trackMoreGamesOpen /
+ * trackMoreGamesSelect) so cross-play events carry the WordHaus taxonomy
+ * ({ game, source_game, target_game }) — consistent with the rest of the app.
+ *
+ * ICON ASSETS: place square PNG/SVG icons in  public/game-icons/  and reference
  * them by path in the GAMES array. The Tessera icon ships as
  * public/game-icons/tessera.png.
  *
@@ -17,6 +21,7 @@
  *   import { initMoreGames } from "./ui/more-games";
  *   initMoreGames();
  */
+import { trackMoreGamesOpen, trackMoreGamesSelect } from "../analytics/analytics";
 
 interface GameEntry {
   id: string;          // stable key (used for analytics + dedupe)
@@ -50,12 +55,6 @@ const GAMES: GameEntry[] = [
   // },
 ];
 
-// Optional analytics hook — fires if GA4's gtag is present, else no-op.
-function track(event: string, params: Record<string, unknown> = {}) {
-  const g = (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag;
-  try { g?.("event", event, params); } catch { /* ignore */ }
-}
-
 /* ------------------------------------------------------------------ */
 /* Public API                                                          */
 /* ------------------------------------------------------------------ */
@@ -86,7 +85,7 @@ function openSheet() {
   const existing = document.getElementById("more-games-sheet");
   if (existing) { existing.remove(); return; }
 
-  track("more_games_open");
+  trackMoreGamesOpen();
 
   const sheet = document.createElement("div");
   sheet.id = "more-games-sheet";
@@ -122,7 +121,7 @@ function openSheet() {
     row.addEventListener("click", () => {
       const url = row.dataset.url!;
       const id = row.dataset.id!;
-      track("more_games_select", { game_id: id });
+      trackMoreGamesSelect(id);   // Lexora → target (source_game added by helper)
       // Full-page navigation — the TWA loads the sibling game; back returns here.
       window.location.href = url;
     });
