@@ -1,21 +1,20 @@
 /**
  * Lexora — lightweight stats endpoint (retention insight).
- * File path:  functions/api/stats.ts   → GET /api/stats?key=YOUR_SECRET
+ * File path:  functions/api/stats.ts   → GET /api/stats
  *
  * Reads ONLY your existing D1 `progress` table — no new tracking, no new data
  * collection, no privacy-policy impact. Answers the single most useful
  * question for a level-based game: "where are players in their journey / where
  * do they drop off?"
  *
- * PROTECTED: requires a secret key (query ?key= or header x-stats-key) so the
- * numbers aren't public. Set a Pages secret STATS_KEY (see SETUP below).
+ * PROTECTED BY CLOUDFLARE ACCESS: this path (lexora.wordhaus.app/api/stats) is
+ * gated by a Cloudflare Access self-hosted application (email-allowlist policy),
+ * so only authenticated admins ever reach this code. The old ?key= gate has
+ * been removed — Access now does the authentication.
  *
- * SETUP:
- *   npx wrangler pages secret put STATS_KEY --project-name lexora
- *   (choose any long random string; you pass it as ?key=... when viewing)
- *
- * USAGE:
- *   https://lexora.wordhaus.app/api/stats?key=YOUR_SECRET
+ * OPTIONAL defence-in-depth: verify the Cf-Access-Jwt-Assertion header (see the
+ * commented block at the bottom) if you ever want the API to independently
+ * confirm the Access token, not just trust that Access fronted the request.
  */
 import type { Env as BaseEnv } from "../_lib/env";
 
@@ -41,11 +40,9 @@ const CHAPTERS = [
 ];
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  // ---- auth ----
-  const url = new URL(context.request.url);
-  const provided = url.searchParams.get("key") || context.request.headers.get("x-stats-key") || "";
-  const secret = context.env.STATS_KEY || "";
-  if (!secret || provided !== secret) return json({ error: "unauthorized" }, 401);
+  // ---- auth: handled by Cloudflare Access (no ?key= needed) ----
+  // This path is protected by a Cloudflare Access application, so any request
+  // that reaches here has already passed the email-allowlist policy.
 
   const db = context.env.DB;
 
@@ -102,3 +99,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return json({ error: "query-failed", detail: String(e) }, 500);
   }
 };
+
+/* ---------------------------------------------------------------------------
+ * OPTIONAL — Defence-in-depth: verify the Cloudflare Access JWT.
+ * Uncomment and call verifyAccess(context) at the top of onRequestGet if you
+ * want the API to independently validate the Access token instead of trusting
+ * that Access fronted the request. Requires your Access "team domain" + the
+ * application AUD tag (Access → your app → Details → Application Audience).
+ *
+ * async function verifyAccess(context: EventContext<Env, string, unknown>) {
+ *   const jwt = context.request.headers.get("Cf-Access-Jwt-Assertion");
+ *   if (!jwt) return json({ error: "no-access-token" }, 403);
+ *   const teamDomain = "wordhaus.cloudflareaccess.com"; // your team domain
+ *   const certsUrl = `https://${teamDomain}/cdn-cgi/access/certs`;
+ *   // fetch certsUrl, find the matching kid, verify signature + aud + exp…
+ *   // (use jose or WebCrypto). Return null if valid, or a 403 json() if not.
+ * }
+ * ------------------------------------------------------------------------- */
