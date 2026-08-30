@@ -47,7 +47,7 @@
   section{margin-top:24px}
   h2{font-size:15px; font-weight:900; margin:0 0 10px; display:flex; align-items:center; gap:8px}
   h2 .tag{font-size:11px; font-weight:700; color:var(--ink-dim); background:var(--card); border:1px solid var(--card-brd); padding:2px 8px; border-radius:999px}
-  .panel{background:var(--card); border:1px solid var(--card-brd); border-radius:16px; padding:14px; overflow:hidden}
+  .panel{background:var(--card); border:1px solid var(--card-brd); border-radius:16px; padding:14px; overflow:hidden; position:relative}
 
   table{width:100%; border-collapse:collapse; font-size:13px}
   thead th{background:var(--indigo-soft); color:var(--ink); text-align:left; padding:9px 12px; font-weight:800; white-space:nowrap; border-bottom:1px solid var(--card-brd)}
@@ -60,7 +60,19 @@
   .barcell span{position:relative; padding-left:8px; font-weight:700}
   .zero{color:var(--ink-dim)}
 
-  canvas{width:100%; max-height:300px}
+  canvas{width:100%; max-height:300px; display:block}
+  #level-chart{cursor:crosshair}
+
+  /* sparkline tooltip */
+  .tip{
+    position:absolute; pointer-events:none; z-index:5;
+    background:rgba(14,23,41,.96); border:1px solid var(--card-brd);
+    border-radius:10px; padding:6px 10px; font-size:12px; font-weight:700;
+    color:var(--ink); box-shadow:0 8px 20px rgba(0,0,0,.5);
+    transform:translate(-50%,-120%); white-space:nowrap; opacity:0; transition:opacity .12s;
+  }
+  .tip .lvl{color:var(--amber-glow)}
+
   .err{background:rgba(217,112,91,.15); border:1px solid rgba(217,112,91,.5); color:#ffd9cf; padding:12px 14px; border-radius:12px; font-size:14px}
   .loading{color:var(--ink-dim); font-size:14px; padding:20px}
   details{margin-top:22px}
@@ -98,6 +110,15 @@
     <div class="panel"><canvas id="chart" height="300"></canvas></div>
   </section>
 
+  <!-- BY LEVEL SPARKLINE (interactive) -->
+  <section>
+    <h2>Players by Level <span class="tag" id="level-tag">granular</span></h2>
+    <div class="panel">
+      <canvas id="level-chart" height="220"></canvas>
+      <div id="level-tip" class="tip"></div>
+    </div>
+  </section>
+
   <!-- BY CHAPTER TABLE -->
   <section>
     <h2>Chapter Breakdown <span class="tag" id="rows-tag">—</span></h2>
@@ -119,6 +140,9 @@
 const ENDPOINT = "/api/stats";
 const $ = (s)=>document.querySelector(s);
 let autoTimer=null;
+let LAST=null;                 // last payload, for redraws on resize
+let levelSeries=[];            // dense 1..maxLevel series for the sparkline
+let levelGeom=null;            // {padL,padT,ch,cw,xOf,yOf} for hit-testing
 
 const fmt=(v)=> (typeof v==="number") ? v.toLocaleString() : String(v);
 
@@ -186,14 +210,122 @@ function drawChart(rows){
     ctx.beginPath();
     const rr=Math.min(5,bw/2);
     ctx.roundRect(x,y,bw,Math.max(h,2),[rr,rr,0,0]); ctx.fill();
-    // value on top
-    if(r.players>0){ ctx.fillStyle="var(--ink)"; ctx.fillStyle="rgba(244,237,228,.9)";
+    if(r.players>0){ ctx.fillStyle="rgba(244,237,228,.9)";
       ctx.textAlign="center"; ctx.fillText(r.players,x+bw/2,y-4); }
-    // chapter label (rotated)
     ctx.fillStyle="rgba(244,237,228,.6)"; ctx.textAlign="center";
     ctx.save(); ctx.translate(x+bw/2,H-padB+14); ctx.rotate(-Math.PI/5);
     ctx.fillText(r.chapter,0,0); ctx.restore();
   });
+}
+
+/* ---------- interactive per-level sparkline ---------- */
+function drawLevelChart(rows, hoverIdx){
+  const canvas = $("#level-chart");
+  if(!canvas || !rows || !rows.length) return;
+  const dpr = window.devicePixelRatio||1;
+  const W = canvas.clientWidth, H = 220;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  const ctx=canvas.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  const padL=32,padR=12,padT=14,padB=28;
+  const cw=W-padL-padR, ch=H-padT-padB;
+
+  // dense 1..maxLevel so zero-player levels dip to baseline
+  const maxLevel = Math.max(...rows.map(r=>r.level), 1);
+  const map = new Map(rows.map(r=>[r.level, r.players]));
+  levelSeries = [];
+  for(let lv=1; lv<=maxLevel; lv++) levelSeries.push({ level:lv, players: map.get(lv)||0 });
+  const maxP = Math.max(1, ...levelSeries.map(s=>s.players));
+
+  const yTicks = Math.min(4, maxP);
+  ctx.strokeStyle="rgba(244,237,228,.12)"; ctx.fillStyle="rgba(244,237,228,.6)";
+  ctx.font="11px system-ui"; ctx.textAlign="right";
+  for(let i=0;i<=yTicks;i++){
+    const frac=i/yTicks;
+    const y=padT+ch*(1-frac); const val=Math.round(maxP*frac);
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+    ctx.fillText(val,padL-6,y+3);
+  }
+
+  const xOf = (i)=> padL + (levelSeries.length===1 ? cw/2 : cw*(i/(levelSeries.length-1)));
+  const yOf = (v)=> padT + ch*(1 - v/maxP);
+  levelGeom = { padL, padT, ch, cw, xOf, yOf };
+
+  // area fill
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), padT+ch);
+  levelSeries.forEach((s,i)=> ctx.lineTo(xOf(i), yOf(s.players)));
+  ctx.lineTo(xOf(levelSeries.length-1), padT+ch); ctx.closePath();
+  const grad = ctx.createLinearGradient(0,padT,0,padT+ch);
+  grad.addColorStop(0,"rgba(242,192,120,.45)"); grad.addColorStop(1,"rgba(242,192,120,0)");
+  ctx.fillStyle=grad; ctx.fill();
+
+  // line
+  ctx.beginPath();
+  levelSeries.forEach((s,i)=> i? ctx.lineTo(xOf(i),yOf(s.players)) : ctx.moveTo(xOf(i),yOf(s.players)));
+  ctx.strokeStyle="#E4A853"; ctx.lineWidth=2; ctx.stroke();
+
+  // dots on non-zero levels
+  ctx.fillStyle="#F2C078";
+  levelSeries.forEach((s,i)=>{ if(s.players>0){ ctx.beginPath(); ctx.arc(xOf(i),yOf(s.players),3,0,Math.PI*2); ctx.fill(); } });
+
+  // x labels (thinned)
+  ctx.fillStyle="rgba(244,237,228,.6)"; ctx.textAlign="center";
+  const step=Math.max(1,Math.ceil(levelSeries.length/12));
+  levelSeries.forEach((s,i)=>{ if(i%step!==0 && i!==levelSeries.length-1) return;
+    ctx.fillText("L"+s.level, xOf(i), H-8); });
+
+  // hover crosshair + highlighted point
+  if(hoverIdx!=null && levelSeries[hoverIdx]){
+    const s=levelSeries[hoverIdx]; const hx=xOf(hoverIdx), hy=yOf(s.players);
+    ctx.strokeStyle="rgba(244,237,228,.25)"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(hx,padT); ctx.lineTo(hx,padT+ch); ctx.stroke();
+    ctx.fillStyle="#FFFFFF"; ctx.beginPath(); ctx.arc(hx,hy,4.5,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle="#E4A853"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(hx,hy,4.5,0,Math.PI*2); ctx.stroke();
+  }
+
+  $("#level-tag").textContent = `levels 1–${maxLevel}`;
+}
+
+function nearestLevelIndex(clientX){
+  const canvas=$("#level-chart");
+  const rect=canvas.getBoundingClientRect();
+  const x=clientX-rect.left;
+  if(!levelGeom || !levelSeries.length) return null;
+  // invert xOf: i = (x-padL)/cw * (n-1)
+  const n=levelSeries.length;
+  let i = Math.round((x-levelGeom.padL)/levelGeom.cw*(n-1));
+  i=Math.max(0,Math.min(n-1,i));
+  return i;
+}
+
+function showLevelTip(clientX){
+  const idx=nearestLevelIndex(clientX);
+  if(idx==null){ hideLevelTip(); return; }
+  const s=levelSeries[idx];
+  const canvas=$("#level-chart"); const rect=canvas.getBoundingClientRect();
+  const panelRect=canvas.parentElement.getBoundingClientRect();
+  const px = rect.left - panelRect.left + levelGeom.xOf(idx);
+  const py = rect.top  - panelRect.top  + levelGeom.yOf(s.players);
+  const tip=$("#level-tip");
+  tip.innerHTML = `<span class="lvl">Level ${s.level}</span> · ${s.players} player${s.players===1?"":"s"}`;
+  tip.style.left = px+"px";
+  tip.style.top  = py+"px";
+  tip.style.opacity = "1";
+  drawLevelChart(LAST.byLevel, idx);   // redraw with highlight
+}
+function hideLevelTip(){
+  $("#level-tip").style.opacity="0";
+  if(LAST && Array.isArray(LAST.byLevel)) drawLevelChart(LAST.byLevel, null);
+}
+
+function wireLevelInteractivity(){
+  const canvas=$("#level-chart");
+  canvas.addEventListener("mousemove", (e)=> showLevelTip(e.clientX));
+  canvas.addEventListener("mouseleave", hideLevelTip);
+  canvas.addEventListener("touchstart", (e)=>{ if(e.touches[0]) showLevelTip(e.touches[0].clientX); }, {passive:true});
+  canvas.addEventListener("touchmove",  (e)=>{ if(e.touches[0]) showLevelTip(e.touches[0].clientX); }, {passive:true});
+  canvas.addEventListener("touchend", hideLevelTip);
 }
 
 async function load(){
@@ -202,6 +334,7 @@ async function load(){
     const res = await fetch(ENDPOINT, { cache:"no-store", credentials:"include" });
     if(!res.ok){ $("#status").innerHTML = `<div class="err">Request failed: ${res.status} ${res.statusText}.</div>`; return; }
     const data = await res.json();
+    LAST = data;
     $("#raw").textContent = JSON.stringify(data,null,2);
     $("#status").innerHTML = "";
     if(data.generatedAt){
@@ -212,6 +345,9 @@ async function load(){
     if(Array.isArray(data.byChapter)){
       renderChapterTable(data.byChapter);
       requestAnimationFrame(()=>drawChart(data.byChapter));
+    }
+    if(Array.isArray(data.byLevel)){
+      requestAnimationFrame(()=>drawLevelChart(data.byLevel, null));
     }
   }catch(err){
     $("#status").innerHTML = `<div class="err">Could not load stats: ${err.message}</div>`;
@@ -233,9 +369,15 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
   };
 }
 
-window.addEventListener("resize", ()=>{ /* redraw chart on resize */
-  const raw=$("#raw").textContent; if(raw&&raw!=="—"){ try{ drawChart(JSON.parse(raw).byChapter);}catch(e){} }
+window.addEventListener("resize", ()=>{
+  if(!LAST) return;
+  try{
+    if(Array.isArray(LAST.byChapter)) drawChart(LAST.byChapter);
+    if(Array.isArray(LAST.byLevel)) drawLevelChart(LAST.byLevel, null);
+  }catch(e){}
 });
+
+wireLevelInteractivity();
 load();
 </script>
 </body>
